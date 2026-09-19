@@ -37,19 +37,19 @@ export default function TablePage() {
   const flying = phase === "flying";
 
   return (
-    <main className="mx-auto max-w-5xl px-5 py-10">
+    <main className="mx-auto max-w-6xl px-5 py-12">
       <header className="flex flex-wrap items-end justify-between gap-6 mb-10">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">
-            Blitz<span className="accent">Bet</span>
+          <h1 className="title-xl">
+            <span className="neon">BlitzBet</span>
           </h1>
-          <p className="text-sm muted mt-1">
+          <p className="text-sm muted mt-2">
             Casino on-chain sur Monad testnet. Scannez, misez, sans wallet.
           </p>
         </div>
         <div className="text-right">
-          <div className="text-[11px] uppercase tracking-widest muted">Bankroll</div>
-          <div className="text-2xl font-semibold tabular">
+          <div className="eyebrow mb-1.5">Bankroll de la maison</div>
+          <div className="figure text-3xl accent">
             {state ? Number(state.bankroll).toFixed(2) : "—"}
             <span className="text-sm muted ml-1.5">MON</span>
           </div>
@@ -62,7 +62,7 @@ export default function TablePage() {
         </div>
       )}
 
-      <div className="grid gap-4 sm:grid-cols-2 mb-10">
+      <div className="grid gap-5 sm:grid-cols-2 mb-10">
         <GameCard
           name="Aviator"
           tagline="Le multiplicateur monte d’un cran par bloc Monad."
@@ -73,7 +73,7 @@ export default function TablePage() {
         >
           <div className="text-center py-3">
             <div
-              className="text-5xl font-bold tabular"
+              className="figure text-6xl"
               style={{ color: flying ? "var(--purple)" : phase === "settled" ? "#f0709f" : "var(--faint)" }}
             >
               {(flying ? av!.multiplier : phase === "settled" ? (av?.lastCrash ?? 1) : 1).toFixed(2)}×

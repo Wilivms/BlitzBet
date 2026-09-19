@@ -109,8 +109,8 @@ export default function PlayPage() {
   if (!seatId) {
     return (
       <main className="mx-auto max-w-sm px-5 py-16">
-        <h1 className="text-3xl font-bold text-center">
-          Blitz<span className="accent">Bet</span>
+        <h1 className="title-xl text-center">
+          <span className="neon">BlitzBet</span>
         </h1>
         <p className="text-center text-sm muted mt-2 mb-8">
           Pas de wallet, pas de clé. La maison vous offre vos jetons.
@@ -140,13 +140,13 @@ export default function PlayPage() {
     <main className="mx-auto max-w-sm px-5 py-8 pb-20">
       <header className="flex items-end justify-between mb-6">
         <div>
-          <div className="text-[11px] uppercase tracking-widest muted">Joueur</div>
+          <div className="eyebrow mb-1.5">Joueur</div>
           <div className="text-lg font-semibold">{me?.nickname ?? "…"}</div>
         </div>
         <div className="text-right">
-          <div className="text-[11px] uppercase tracking-widest muted">Crédits</div>
-          <div className="text-xl font-semibold tabular accent">
-            {me ? fmtCredits(me.chips) : "—"}
+          <div className="eyebrow mb-1.5">Crédits</div>
+          <div className="credits">
+            <span className="credits-value">{me ? fmtCredits(me.chips) : "—"}</span>
           </div>
         </div>
       </header>
@@ -165,7 +165,7 @@ export default function PlayPage() {
 
       {/* ---------------------------------------------------------- menu des jeux -- */}
       {!game && (
-        <div className="grid gap-3">
+        <div className="grid gap-4">
           {GAMES.map((g) => (
             <GameCard
               key={g.key}
@@ -191,7 +191,7 @@ export default function PlayPage() {
           </button>
 
           <div className="card p-4 mb-4">
-            <div className="text-[11px] uppercase tracking-widest muted mb-2">Mise (crédits)</div>
+            <div className="eyebrow mb-2.5">Mise (crédits)</div>
             <div className="grid grid-cols-4 gap-2">
               {STAKES.map((s) => (
                 <button

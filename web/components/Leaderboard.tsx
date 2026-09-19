@@ -23,12 +23,12 @@ export function Leaderboard({ players }: { players: TableState["players"] }) {
           const down = BigInt(p.pnlRaw) < 0n;
           return (
             <tr key={p.seatId} className="border-t border-white/5">
-              <td className="py-2 accent font-semibold tabular">{i + 1}</td>
-              <td className="font-medium">{p.nickname}</td>
-              <td className="text-right tabular">{fmtCredits(p.chips)}</td>
+              <td className="py-2.5"><span className={`rank ${i === 0 ? "rank-1" : i === 1 ? "rank-2" : i === 2 ? "rank-3" : ""}`}>{i + 1}</span></td>
+              <td className="font-bold">{p.nickname}</td>
+              <td className="text-right tabular font-bold" style={{ color: "var(--gold)" }}>{fmtCredits(p.chips)}</td>
               <td
                 className={`text-right tabular font-semibold ${
-                  up ? "text-emerald-400" : down ? "text-rose-400" : "muted"
+                  up ? "text-[var(--green)]" : down ? "text-[var(--berry)]" : "muted"
                 }`}
               >
                 {fmtCreditsSigned(p.pnl)}
