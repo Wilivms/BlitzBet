@@ -68,14 +68,36 @@ function warnFallback() {
   );
 }
 
+/**
+ * Redis est un confort, pas une dependance dure. S'il ne repond pas -- endpoint REST
+ * reconstruit a tort depuis REDIS_URL, token invalide, reseau -- on bascule
+ * DEFINITIVEMENT en memoire pour ce processus plutot que de faire echouer une mise.
+ *
+ * Une partie qui ne part pas parce qu'un verrou distribue est injoignable, c'est pire que
+ * le risque que ce verrou couvre : avec une seule table, le verrou local suffit.
+ */
+let degraded = false;
+export const kvDegraded = () => degraded;
+
 async function call(...args: (string | number)[]): Promise<unknown> {
-  const r = await fetch(`${url}/${args.map(encodeURIComponent).join("/")}`, {
-    headers: { Authorization: `Bearer ${token}` },
-    cache: "no-store",
-  });
-  if (!r.ok) throw new Error(`kv ${args[0]} failed: ${r.status} ${await r.text()}`);
-  const j = (await r.json()) as { result: unknown };
-  return j.result;
+  if (degraded) throw new Error("kv degraded");
+  try {
+    const r = await fetch(`${url}/${args.map(encodeURIComponent).join("/")}`, {
+      headers: { Authorization: `Bearer ${token}` },
+      cache: "no-store",
+      signal: AbortSignal.timeout(2500),
+    });
+    if (!r.ok) throw new Error(`${r.status}`);
+    const j = (await r.json()) as { result: unknown };
+    return j.result;
+  } catch (e) {
+    degraded = true;
+    console.warn(
+      `[kv] Redis injoignable (${(e as Error).message}) -> verrou local pour la suite. ` +
+        "Ajoute UPSTASH_REDIS_REST_URL et UPSTASH_REDIS_REST_TOKEN pour le retablir.",
+    );
+    throw e;
+  }
 }
 
 const memory = new Map<string, string>();
@@ -126,39 +148,40 @@ export const kv = {
     const timeoutMs = opts?.timeoutMs ?? 20_000;
     const lockKey = `lock:${key}`;
 
-    if (!this.configured) {
-      warnFallback();
-      // Chain onto whatever is already queued for this key.
-      const prev = localLocks.get(lockKey) ?? Promise.resolve();
-      let release: () => void = () => {};
-      const mine = new Promise<void>((res) => (release = res));
-      localLocks.set(
-        lockKey,
-        prev.then(() => mine),
-      );
-      await prev;
+    // Le verrou local est TOUJOURS pris : il serialise les appels de cette instance.
+    const prev = localLocks.get(lockKey) ?? Promise.resolve();
+    let release: () => void = () => {};
+    const mine = new Promise<void>((res) => (release = res));
+    localLocks.set(lockKey, prev.then(() => mine));
+    await prev;
+
+    // Redis vient par-dessus, pour couvrir le cas multi-instances. S'il est absent ou
+    // injoignable, on continue avec le seul verrou local plutot que d'echouer.
+    let heldRemote = false;
+    if (this.configured && !degraded) {
+      const stamp = `${Date.now()}-${Math.random()}`;
+      const deadline = Date.now() + timeoutMs;
       try {
-        return await fn();
-      } finally {
-        release();
+        for (;;) {
+          if ((await call("set", lockKey, stamp, "NX", "PX", ttlMs)) === "OK") {
+            heldRemote = true;
+            break;
+          }
+          if (Date.now() > deadline) break; // occupe : on avance quand meme, verrou local tenu
+          await new Promise((r) => setTimeout(r, 60 + Math.random() * 60));
+        }
+      } catch {
+        /* degrade : verrou local seul */
       }
+    } else if (!this.configured) {
+      warnFallback();
     }
 
-    const token_ = `${Date.now()}-${Math.random()}`;
-    const deadline = Date.now() + timeoutMs;
-    for (;;) {
-      const acquired = await call("set", lockKey, token_, "NX", "PX", ttlMs);
-      if (acquired === "OK") break;
-      if (Date.now() > deadline) throw new Error("table occupee, reessayez");
-      await new Promise((r) => setTimeout(r, 60 + Math.random() * 60));
-    }
     try {
       return await fn();
     } finally {
-      // Best-effort release. If the TTL already expired under us, this is a harmless no-op
-      // (or, worst case, releases a lock someone else has since acquired -- acceptable risk
-      // at demo scale, and far better than blocking the table for 15s on every miss).
-      await call("del", lockKey).catch(() => undefined);
+      if (heldRemote) await call("del", lockKey).catch(() => undefined);
+      release();
     }
   },
 };
