@@ -6,15 +6,63 @@ import "server-only";
  * configured, which is fine for `next dev` but NOT safe once Vercel can run more than one
  * instance of a route concurrently: see the warning this prints once.
  */
-const url = process.env.UPSTASH_REDIS_REST_URL;
-const token = process.env.UPSTASH_REDIS_REST_TOKEN;
+/**
+ * Les noms de variables dependent de comment le Redis a ete cree :
+ *  - compte Upstash direct        -> UPSTASH_REDIS_REST_URL / _TOKEN
+ *  - integration Vercel (Storage) -> KV_REST_API_URL / KV_REST_API_TOKEN
+ *  - integration Marketplace      -> parfois REDIS_URL seul (chaine TCP rediss://)
+ *
+ * REDIS_URL seul ne suffit pas a ce client : il parle l'API REST en fetch, pas le
+ * protocole Redis en TCP (que les fonctions Vercel ne peuvent de toute facon pas ouvrir
+ * depuis l'edge). On tente quand meme de reconstruire l'endpoint REST depuis la chaine
+ * TCP Upstash (host + mot de passe), ce qui marche sur Upstash ou le mot de passe Redis
+ * est aussi le token REST -- mais on le signale, parce que ce n'est pas garanti.
+ */
+function resolveRest(): { url?: string; token?: string; source: string } {
+  const pairs: [string, string][] = [
+    ["UPSTASH_REDIS_REST_URL", "UPSTASH_REDIS_REST_TOKEN"],
+    ["KV_REST_API_URL", "KV_REST_API_TOKEN"],
+    ["REDIS_REST_API_URL", "REDIS_REST_API_TOKEN"],
+  ];
+  for (const [u, t] of pairs) {
+    if (process.env[u] && process.env[t]) {
+      return { url: process.env[u], token: process.env[t], source: u };
+    }
+  }
+  const redisUrl = process.env.REDIS_URL ?? process.env.KV_URL;
+  if (redisUrl) {
+    try {
+      const parsed = new URL(redisUrl);
+      const password = decodeURIComponent(parsed.password || "");
+      if (parsed.hostname && password) {
+        console.warn(
+          "[kv] Aucune paire REST trouvee. Endpoint REST reconstruit depuis REDIS_URL " +
+            "(best effort). Si les appels Redis echouent en 401, ajoute explicitement " +
+            "UPSTASH_REDIS_REST_URL et UPSTASH_REDIS_REST_TOKEN.",
+        );
+        return { url: `https://${parsed.hostname}`, token: password, source: "REDIS_URL (derive)" };
+      }
+    } catch {
+      /* chaine illisible, on tombera en memoire */
+    }
+  }
+  return { source: "aucune" };
+}
+
+const resolved = resolveRest();
+const url = resolved.url;
+const token = resolved.token;
+
+/** Quelle source de config a ete retenue, pour le diagnostic. */
+export const kvSource = resolved.source;
 
 let warned = false;
 function warnFallback() {
   if (warned) return;
   warned = true;
   console.warn(
-    "[kv] UPSTASH_REDIS_REST_URL/TOKEN absents -> verrou en memoire locale. " +
+    "[kv] Aucune config Redis REST trouvee (essaye : UPSTASH_REDIS_REST_URL/_TOKEN, " +
+      "KV_REST_API_URL/_TOKEN, ou REDIS_URL) -> verrou en memoire locale. " +
       "Ne PAS deployer sur Vercel sans Redis configure : plusieurs instances serverless " +
       "casseraient la file de nonces et le seed de l'Aviator.",
   );
@@ -114,3 +162,17 @@ export const kv = {
     }
   },
 };
+
+/** Aller-retour reel vers Redis. Utilise par /api/state pour le diagnostic. */
+export async function kvHealth(): Promise<{ configured: boolean; source: string; ok: boolean; error?: string }> {
+  if (!kv.configured) return { configured: false, source: kvSource, ok: false };
+  try {
+    const probe = `health:${Date.now()}`;
+    await kv.set(probe, "1", 10);
+    const back = await kv.get(probe);
+    await kv.del(probe);
+    return { configured: true, source: kvSource, ok: back === "1" };
+  } catch (e) {
+    return { configured: true, source: kvSource, ok: false, error: (e as Error).message };
+  }
+}
