@@ -3,12 +3,14 @@ import { formatEther } from "viem";
 import { casinoHubAbi, rouletteAbi } from "@/lib/abi";
 import { addresses } from "@/lib/chain";
 import { publicClient } from "@/lib/relayer";
+import { cached } from "@/lib/cache";
 
 export const dynamic = "force-dynamic";
 
 /** One poll drives the whole table: leaderboard, bankroll and the live roulette round. */
 export async function GET() {
   try {
+    const payload = await cached("state", 700, async () => {
     if (!addresses.hub) {
       return NextResponse.json({ error: "NEXT_PUBLIC_CASINO_HUB non configure" }, { status: 503 });
     }
@@ -39,7 +41,7 @@ export async function GET() {
       }))
       .sort((a, b) => (BigInt(b.pnlRaw) > BigInt(a.pnlRaw) ? 1 : -1));
 
-    return NextResponse.json({
+    return {
       bankroll: formatEther(bankroll),
       players,
       roulette: {
@@ -48,7 +50,10 @@ export async function GET() {
         lastResult: Number(lastResult),
         betsInRound: Number(betsInRound),
       },
+    };
     });
+
+    return NextResponse.json(payload);
   } catch (err) {
     return NextResponse.json({ error: (err as Error).message }, { status: 500 });
   }

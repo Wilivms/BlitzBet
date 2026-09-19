@@ -4,6 +4,7 @@ import { rouletteAbi } from "@/lib/abi";
 import { addresses, explorerTx } from "@/lib/chain";
 import { GAS, publicClient, send } from "@/lib/relayer";
 import { isSeatId } from "@/lib/seat";
+import { settleTreasury } from "@/lib/treasury";
 
 export const dynamic = "force-dynamic";
 
@@ -86,7 +87,8 @@ export async function POST(req: Request) {
           /* not our event */
         }
       }
-      return NextResponse.json({ ok: true, result, settled, hash, explorer: explorerTx(hash) });
+      const treasury = await settleTreasury(receipt);
+      return NextResponse.json({ ok: true, result, settled, hash, explorer: explorerTx(hash), treasury });
     }
 
     return NextResponse.json({ error: "action inconnue" }, { status: 400 });

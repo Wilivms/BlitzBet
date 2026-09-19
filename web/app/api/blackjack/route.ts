@@ -4,6 +4,7 @@ import { blackjackAbi } from "@/lib/abi";
 import { addresses, explorerTx } from "@/lib/chain";
 import { GAS, publicClient, send } from "@/lib/relayer";
 import { isSeatId } from "@/lib/seat";
+import { settleTreasury } from "@/lib/treasury";
 
 export const dynamic = "force-dynamic";
 
@@ -70,20 +71,21 @@ export async function POST(req: Request) {
     if (!isSeatId(seatId)) return NextResponse.json({ error: "seatId invalide" }, { status: 400 });
 
     let hash: `0x${string}`;
+    let receipt: Awaited<ReturnType<typeof send>>["receipt"];
     if (action === "deal") {
       const stake = parseEther(String(wager ?? "0.05"));
       if (stake < parseEther("0.001")) {
         return NextResponse.json({ error: "mise minimum 0.001 MON" }, { status: 400 });
       }
-      ({ hash } = await send({ ...bj, functionName: "deal", args: [seatId, stake], gas: GAS.deal }));
+      ({ hash, receipt } = await send({ ...bj, functionName: "deal", args: [seatId, stake], gas: GAS.deal }));
     } else if (action === "hit") {
-      ({ hash } = await send({ ...bj, functionName: "hit", args: [seatId], gas: GAS.hit }));
+      ({ hash, receipt } = await send({ ...bj, functionName: "hit", args: [seatId], gas: GAS.hit }));
     } else if (action === "stand") {
-      ({ hash } = await send({ ...bj, functionName: "stand", args: [seatId], gas: GAS.stand }));
+      ({ hash, receipt } = await send({ ...bj, functionName: "stand", args: [seatId], gas: GAS.stand }));
     } else if (action === "double") {
-      ({ hash } = await send({ ...bj, functionName: "doubleDown", args: [seatId], gas: GAS.double }));
+      ({ hash, receipt } = await send({ ...bj, functionName: "doubleDown", args: [seatId], gas: GAS.double }));
     } else if (action === "split") {
-      ({ hash } = await send({ ...bj, functionName: "split", args: [seatId], gas: GAS.split }));
+      ({ hash, receipt } = await send({ ...bj, functionName: "split", args: [seatId], gas: GAS.split }));
     } else {
       return NextResponse.json({ error: "action inconnue" }, { status: 400 });
     }
@@ -99,7 +101,8 @@ export async function POST(req: Request) {
     }
 
     const game = await readGame(gameId);
-    return NextResponse.json({ ...game, hash, explorer: explorerTx(hash) });
+    const treasury = await settleTreasury(receipt);
+    return NextResponse.json({ ...game, hash, explorer: explorerTx(hash), treasury });
   } catch (err) {
     return NextResponse.json({ error: (err as Error).message }, { status: 500 });
   }

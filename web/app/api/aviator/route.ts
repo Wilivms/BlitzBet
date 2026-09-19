@@ -5,6 +5,8 @@ import { addresses, explorerTx } from "@/lib/chain";
 import { GAS, publicClient, send } from "@/lib/relayer";
 import { mintSeed, seedFor } from "@/lib/aviatorSeed";
 import { isSeatId } from "@/lib/seat";
+import { cached, invalidate } from "@/lib/cache";
+import { settleTreasury } from "@/lib/treasury";
 
 export const dynamic = "force-dynamic";
 
@@ -20,6 +22,11 @@ type RawSeat = {
 };
 
 async function snapshot() {
+  return cached("aviator", 300, snapshotUncached);
+}
+
+/** 300 ms = un bloc Monad. Dix clients ne declenchent qu'un seul appel RPC. */
+async function snapshotUncached() {
   const [roundId, phase, tick, multiplierBp, seats, lastCrashBp] = await Promise.all([
     publicClient.readContract({ ...av, functionName: "roundId" }) as Promise<bigint>,
     publicClient.readContract({ ...av, functionName: "phase" }) as Promise<number>,
@@ -70,12 +77,15 @@ async function autoRevealIfCrashed(snap: Awaited<ReturnType<typeof snapshot>>) {
 
   revealing = true;
   try {
-    await send({
+    const { receipt } = await send({
       ...av,
       functionName: "reveal",
       args: [seed],
       gas: GAS.avReveal(snap.seats.length),
     });
+    // Le reveal solde tous les sieges d'un coup : un seul virement net pour la table.
+    await settleTreasury(receipt);
+    invalidate("aviator");
     return await snapshot();
   } finally {
     revealing = false;

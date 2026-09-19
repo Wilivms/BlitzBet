@@ -1,9 +1,9 @@
 /**
  * Affichage seulement. La vérité reste on-chain dans CasinoHub.chips (en MON).
- * Le buy-in de 0.5 MON devient 100 crédits, ce qui se lit comme un casino
+ * Le buy-in de 0.05 MON devient 500 crédits, ce qui se lit comme un casino
  * plutôt que comme un solde de testnet.
  */
-export const CREDIT_RATE = 200;
+export const CREDIT_RATE = 10_000;
 
 export const toCredits = (mon: string | number): number =>
   Math.round(Number(mon || 0) * CREDIT_RATE);

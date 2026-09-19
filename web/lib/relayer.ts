@@ -70,7 +70,7 @@ function walletClient() {
  * read fresh from the chain inside the lock every time: if `job` throws before broadcasting,
  * nothing was ever consumed, so the next caller gets the same nonce back rather than a gap.
  */
-function withNonce<T>(job: (nonce: number) => Promise<T>): Promise<T> {
+export function withNonceLock<T>(job: (nonce: number) => Promise<T>): Promise<T> {
   return kv.withLock(`nonce:${relayerAccount().address}`, async () => {
     const nonce = await publicClient.getTransactionCount({
       address: relayerAccount().address,
@@ -92,7 +92,7 @@ export type SendArgs = {
 export type SendResult = { hash: Hash; receipt: TransactionReceipt };
 
 export async function send({ address, abi, functionName, args, gas }: SendArgs): Promise<SendResult> {
-  return withNonce(async (nonce) => {
+  return withNonceLock(async (nonce) => {
     const wallet = walletClient();
     const hash = await wallet.writeContract({
       address,

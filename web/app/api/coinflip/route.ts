@@ -4,6 +4,7 @@ import { coinFlipAbi } from "@/lib/abi";
 import { addresses, explorerTx } from "@/lib/chain";
 import { GAS, send } from "@/lib/relayer";
 import { isSeatId } from "@/lib/seat";
+import { settleTreasury } from "@/lib/treasury";
 
 export const dynamic = "force-dynamic";
 
@@ -46,7 +47,8 @@ export async function POST(req: Request) {
       }
     }
 
-    return NextResponse.json({ result, won, payout, hash, explorer: explorerTx(hash) });
+    const treasury = await settleTreasury(receipt);
+    return NextResponse.json({ result, won, payout, hash, explorer: explorerTx(hash), treasury });
   } catch (err) {
     return NextResponse.json({ error: (err as Error).message }, { status: 500 });
   }
