@@ -12,7 +12,7 @@ const ICONS: Record<string, string> = {
 };
 
 export default function PlayMenu() {
-  const { state } = useTable(1500);
+  const { state } = useTable(3000);
   const [seatId, setSeatId] = useState<string | null>(null);
   const [nickname, setNickname] = useState("");
   const [busy, setBusy] = useState(false);
@@ -39,7 +39,7 @@ export default function PlayMenu() {
   if (!seatId) {
     return (
       <main className="mx-auto max-w-sm px-5 py-16">
-        <h1 className="title-xl text-center"><span className="neon">BlitzBet</span></h1>
+        <h1 className="title-xl text-center">BlitzBet</h1>
         <p className="text-center text-sm muted mt-3 mb-8">
           Pas de wallet, pas de clé. La maison vous offre 500 crédits.
         </p>

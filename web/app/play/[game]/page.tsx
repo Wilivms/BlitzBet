@@ -19,7 +19,7 @@ export default function GamePage() {
   const params = useParams<{ game: string }>();
   const game = params.game as GameKey;
 
-  const { state } = useTable(1200);
+  const { state } = useTable(2500);
   const [seatId, setSeatId] = useState<string | null>(null);
   const [stake, setStake] = useState("0.01");
   const [busy, setBusy] = useState(false);
@@ -55,6 +55,19 @@ export default function GamePage() {
         });
       }
     } catch (e) { setFlipping(false); setMsg({ text: (e as Error).message, tone: "lose" }); }
+    finally { setBusy(false); }
+  }
+
+  async function dealer(endpoint: string, action: string) {
+    setBusy(true);
+    try {
+      const r = await fetch(endpoint, {
+        method: "POST", headers: { "content-type": "application/json" },
+        body: JSON.stringify({ action }),
+      });
+      const j = await r.json();
+      if (j.error) setMsg({ text: j.error, tone: "lose" });
+    } catch (e) { setMsg({ text: (e as Error).message, tone: "lose" }); }
     finally { setBusy(false); }
   }
 
@@ -178,6 +191,30 @@ export default function GamePage() {
 
       {game === "blackjack" && <BlackjackPanel seatId={seatId} stake={stake} />}
       {game === "aviator" && <AviatorPanel mode="player" seatId={seatId} stake={stake} />}
+
+      {(game === "roulette" || game === "aviator") && (
+        <section className="card p-4 mt-4">
+          <h3 className="eyebrow mb-3">Croupier</h3>
+          <div className="grid grid-cols-2 gap-2">
+            {game === "roulette" ? (
+              <>
+                <button className="btn text-sm" disabled={busy || wheel?.isOpen}
+                        onClick={() => dealer("/api/roulette", "open")}>Ouvrir un tour</button>
+                <button className="btn btn-primary text-sm" disabled={busy || !wheel?.isOpen}
+                        onClick={() => dealer("/api/roulette", "spin")}>Lancer</button>
+              </>
+            ) : (
+              <>
+                <button className="btn text-sm" disabled={busy}
+                        onClick={() => dealer("/api/aviator", "open")}>Ouvrir</button>
+                <button className="btn btn-primary text-sm" disabled={busy}
+                        onClick={() => dealer("/api/aviator", "launch")}>Décoller</button>
+              </>
+            )}
+          </div>
+          <p className="text-xs muted mt-2.5">Commandes de table. Le public n&apos;en a pas besoin.</p>
+        </section>
+      )}
     </main>
   );
 }

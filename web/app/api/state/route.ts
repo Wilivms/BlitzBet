@@ -17,17 +17,21 @@ export async function GET() {
     const hub = { address: addresses.hub, abi: casinoHubAbi as never } as const;
     const wheel = { address: addresses.roulette, abi: rouletteAbi as never } as const;
 
-    // viem batches these into a single RPC message (docs: "Reduce latency with concurrent calls").
-    const [bankroll, board, roundId, isOpen, lastResult, betsInRound] = await Promise.all([
-      publicClient.readContract({ ...hub, functionName: "bankroll" }) as Promise<bigint>,
-      publicClient.readContract({ ...hub, functionName: "leaderboard" }) as Promise<
-        [readonly `0x${string}`[], readonly string[], readonly bigint[], readonly bigint[], readonly bigint[]]
-      >,
-      publicClient.readContract({ ...wheel, functionName: "roundId" }) as Promise<bigint>,
-      publicClient.readContract({ ...wheel, functionName: "isOpen" }) as Promise<boolean>,
-      publicClient.readContract({ ...wheel, functionName: "lastResult" }) as Promise<number>,
-      publicClient.readContract({ ...wheel, functionName: "betsInRound" }) as Promise<bigint>,
-    ]);
+    // Multicall3 : les 6 lectures deviennent UN seul eth_call.
+    // Le RPC public plafonne a 15 req/s ; sans ca, un seul ecran le sature.
+    const [bankroll, board, roundId, isOpen, lastResult, betsInRound] =
+      (await publicClient.multicall({
+        contracts: [
+          { ...hub, functionName: "bankroll" },
+          { ...hub, functionName: "leaderboard" },
+          { ...wheel, functionName: "roundId" },
+          { ...wheel, functionName: "isOpen" },
+          { ...wheel, functionName: "lastResult" },
+          { ...wheel, functionName: "betsInRound" },
+        ],
+        allowFailure: false,
+        multicallAddress: "0xcA11bde05977b3631167028862bE2a173976CA11",
+      })) as [bigint, [readonly `0x${string}`[], readonly string[], readonly bigint[], readonly bigint[], readonly bigint[]], bigint, boolean, number, bigint];
 
     const [ids, nicks, chips, pnl, bets] = board;
     const players = ids

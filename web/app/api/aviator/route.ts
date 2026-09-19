@@ -27,14 +27,19 @@ async function snapshot() {
 
 /** 300 ms = un bloc Monad. Dix clients ne declenchent qu'un seul appel RPC. */
 async function snapshotUncached() {
-  const [roundId, phase, tick, multiplierBp, seats, lastCrashBp] = await Promise.all([
-    publicClient.readContract({ ...av, functionName: "roundId" }) as Promise<bigint>,
-    publicClient.readContract({ ...av, functionName: "phase" }) as Promise<number>,
-    publicClient.readContract({ ...av, functionName: "currentTick" }) as Promise<bigint>,
-    publicClient.readContract({ ...av, functionName: "currentMultiplierBp" }) as Promise<bigint>,
-    publicClient.readContract({ ...av, functionName: "seats" }) as Promise<RawSeat[]>,
-    publicClient.readContract({ ...av, functionName: "lastCrashBp" }) as Promise<bigint>,
-  ]);
+  const [roundId, phase, tick, multiplierBp, seats, lastCrashBp] =
+    (await publicClient.multicall({
+      contracts: [
+        { ...av, functionName: "roundId" },
+        { ...av, functionName: "phase" },
+        { ...av, functionName: "currentTick" },
+        { ...av, functionName: "currentMultiplierBp" },
+        { ...av, functionName: "seats" },
+        { ...av, functionName: "lastCrashBp" },
+      ],
+      allowFailure: false,
+      multicallAddress: "0xcA11bde05977b3631167028862bE2a173976CA11",
+    })) as [bigint, number, bigint, bigint, RawSeat[], bigint];
 
   return {
     roundId: Number(roundId),

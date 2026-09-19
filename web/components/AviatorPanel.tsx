@@ -22,7 +22,7 @@ export function AviatorPanel({
   seatId?: string;
   stake?: string;
 }) {
-  const av = useAviator(400);
+  const av = useAviator(1000);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
 

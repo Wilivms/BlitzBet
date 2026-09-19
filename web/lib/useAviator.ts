@@ -12,7 +12,7 @@ export type AviatorState = {
 };
 
 /** 400ms polling. Blocks are 300ms, so this is roughly one sample per tick of the curve. */
-export function useAviator(intervalMs = 400) {
+export function useAviator(intervalMs = 1000) {
   const [state, setState] = useState<AviatorState | null>(null);
   useEffect(() => {
     let alive = true;

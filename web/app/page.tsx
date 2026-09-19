@@ -1,173 +1,74 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { QRCodeSVG } from "qrcode.react";
-import { GameCard } from "@/components/GameCard";
 import { Leaderboard } from "@/components/Leaderboard";
-import { Pocket } from "@/components/Pocket";
-import { useAviator } from "@/lib/useAviator";
+import { WalletBar } from "@/components/WalletBar";
+import { GAMES } from "@/lib/games";
 import { useTable } from "@/lib/useTable";
 
-/** Écran de table : ce que le public voit sur le grand écran. */
-export default function TablePage() {
-  const { state, error } = useTable(900);
-  const av = useAviator(450);
+const ICONS: Record<string, string> = {
+  aviator: "✈︎", roulette: "◉", coinflip: "◐", blackjack: "♠",
+};
+
+/** Accueil : les quatre jeux, rien d'autre. Un clic mène à la page du jeu. */
+export default function Home() {
+  const { state, error } = useTable(2500);
   const [joinUrl, setJoinUrl] = useState("");
-  const [busy, setBusy] = useState<string | null>(null);
 
-  useEffect(() => {
-    setJoinUrl(`${window.location.origin}/play`);
-  }, []);
-
-  async function call(endpoint: string, body: Record<string, unknown>) {
-    setBusy(String(body.action));
-    try {
-      await fetch(endpoint, {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify(body),
-      });
-    } finally {
-      setBusy(null);
-    }
-  }
-
-  const wheel = state?.roulette;
-  const phase = av?.phase ?? "idle";
-  const flying = phase === "flying";
+  useEffect(() => setJoinUrl(`${window.location.origin}/play`), []);
 
   return (
-    <main className="mx-auto max-w-6xl px-5 py-12">
-      <header className="flex flex-wrap items-end justify-between gap-6 mb-10">
+    <main className="mx-auto max-w-4xl px-6 py-14">
+      <header className="flex flex-wrap items-end justify-between gap-6 mb-12">
         <div>
-          <h1 className="title-xl">
-            <span className="neon">BlitzBet</span>
-          </h1>
-          <p className="text-sm muted mt-2">
-            Casino on-chain sur Monad testnet. Scannez, misez, sans wallet.
-          </p>
+          <h1 className="title-xl">BlitzBet</h1>
+          <p className="text-sm muted mt-2">Casino on-chain sur Monad testnet.</p>
         </div>
         <div className="text-right">
-          <div className="eyebrow mb-1.5">Bankroll de la maison</div>
-          <div className="figure text-3xl accent">
+          <div className="eyebrow mb-1.5">Bankroll</div>
+          <div className="figure text-2xl">
             {state ? Number(state.bankroll).toFixed(2) : "—"}
-            <span className="text-sm muted ml-1.5">MON</span>
+            <span className="text-sm muted ml-1.5 font-normal">MON</span>
           </div>
         </div>
       </header>
 
       {error && (
-        <div className="card p-4 mb-8 text-sm" style={{ borderColor: "rgba(160,5,93,.5)" }}>
-          <span style={{ color: "#f0709f" }}>{error}</span>
-        </div>
+        <div className="card p-4 mb-8 text-sm" style={{ color: "var(--berry)" }}>{error}</div>
       )}
 
-      <div className="grid gap-5 sm:grid-cols-2 mb-10">
-        <GameCard
-          name="Aviator"
-          tagline="Le multiplicateur monte d’un cran par bloc Monad."
-          live={flying || phase === "betting"}
-          status={
-            phase === "betting" ? "mises ouvertes" : flying ? "en vol" : phase === "settled" ? "crashé" : "au sol"
-          }
-        >
-          <div className="text-center py-3">
-            <div
-              className="figure text-6xl"
-              style={{ color: flying ? "var(--purple)" : phase === "settled" ? "#f0709f" : "var(--faint)" }}
-            >
-              {(flying ? av!.multiplier : phase === "settled" ? (av?.lastCrash ?? 1) : 1).toFixed(2)}×
-            </div>
-            <div className="text-xs muted mt-1">
-              {flying ? `${av!.tick} blocs de vol` : phase === "settled" ? "crashé" : "prêt au décollage"}
-            </div>
-          </div>
-          <div className="grid grid-cols-2 gap-2">
-            <button
-              className="btn"
-              disabled={busy !== null || phase === "betting" || flying}
-              onClick={() => call("/api/aviator", { action: "open" })}
-            >
-              Ouvrir
-            </button>
-            <button
-              className="btn btn-primary"
-              disabled={busy !== null || phase !== "betting"}
-              onClick={() => call("/api/aviator", { action: "launch" })}
-            >
-              Décoller
-            </button>
-          </div>
-        </GameCard>
-
-        <GameCard
-          name="Roulette"
-          tagline="Européenne à zéro unique. Toute la table sur la même roue."
-          live={Boolean(wheel?.isOpen)}
-          status={wheel?.isOpen ? "mises ouvertes" : "fermé"}
-        >
-          <div className="flex items-center gap-4 py-3">
-            <Pocket n={wheel?.lastResult ?? 0} />
-            <div className="text-xs muted">
-              Tour #{wheel?.roundId ?? "—"}
-              <br />
-              {wheel?.betsInRound ?? 0} mise(s) sur le tapis
-            </div>
-          </div>
-          <div className="grid grid-cols-2 gap-2">
-            <button
-              className="btn"
-              disabled={busy !== null || wheel?.isOpen}
-              onClick={() => call("/api/roulette", { action: "open" })}
-            >
-              Ouvrir un tour
-            </button>
-            <button
-              className="btn btn-primary"
-              disabled={busy !== null || !wheel?.isOpen}
-              onClick={() => call("/api/roulette", { action: "spin" })}
-            >
-              Lancer
-            </button>
-          </div>
-        </GameCard>
-
-        <GameCard
-          name="CoinFlip"
-          tagline="Pile ou face, double ou rien. Les joueurs misent depuis leur téléphone."
-          live
-          status="en ligne"
-          meta="2× · résultat en une transaction"
-        />
-
-        <GameCard
-          name="Blackjack"
-          tagline="Chaque joueur affronte le contrat. Tirer, rester, doubler, séparer."
-          live
-          status="en ligne"
-          meta="blackjack payé 3:2 · croupier à 17"
-        />
+      <div className="grid gap-px mb-12 overflow-hidden rounded-2xl" style={{ background: "var(--line)" }}>
+        {GAMES.map((g) => (
+          <Link key={g.key} href={`/play/${g.key}`} className="game-row">
+            <span className="game-icon">{ICONS[g.key]}</span>
+            <span className="game-name">{g.name}</span>
+            <span className="game-arrow" aria-hidden>→</span>
+          </Link>
+        ))}
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-3">
-        <section className="card p-5 sm:col-span-2">
-          <h2 className="font-semibold mb-4">Classement</h2>
+      <div className="grid gap-5 sm:grid-cols-3">
+        <section className="card p-6 sm:col-span-2">
+          <h2 className="eyebrow mb-4">Classement</h2>
           <Leaderboard players={state?.players ?? []} />
         </section>
 
-        <section className="card p-5 flex flex-col items-center justify-center text-center">
-          <h2 className="font-semibold mb-1">Rejoindre</h2>
-          <p className="text-xs muted mb-4">La maison offre les jetons.</p>
+        <section className="card p-6 flex flex-col items-center justify-center text-center">
+          <h2 className="eyebrow mb-3">Rejoindre</h2>
           {joinUrl && (
-            <div className="bg-white p-2.5 rounded-xl">
-              <QRCodeSVG value={joinUrl} size={132} />
+            <div className="bg-white p-2.5 rounded-lg">
+              <QRCodeSVG value={joinUrl} size={124} />
             </div>
           )}
         </section>
       </div>
 
+      <WalletBar />
+
       <footer className="mt-10 text-[11px] muted text-center">
-        Monad testnet · chain 10143 · les quatre jeux tournent on-chain
+        Monad testnet · chain 10143
       </footer>
     </main>
   );

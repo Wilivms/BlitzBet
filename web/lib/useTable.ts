@@ -15,7 +15,7 @@ export type TableState = {
 };
 
 /** Polls the chain-backed table state. 800ms keeps the leaderboard feeling live on 300ms blocks. */
-export function useTable(intervalMs = 800) {
+export function useTable(intervalMs = 2500) {
   const [state, setState] = useState<TableState | null>(null);
   const [error, setError] = useState<string | null>(null);
 
