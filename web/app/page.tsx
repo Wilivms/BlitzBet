@@ -180,8 +180,8 @@ export default function TablePage() {
             ))}
           </ul>
           <p className="text-[11px] opacity-45 mt-4 leading-relaxed">
-            Blackjack et Aviator sont des prototypes non déployés : ils apparaissent ici pour la
-            feuille de route, pas comme des jeux jouables.
+            Aviator n’est pas encore déployé : il figure ici pour la feuille de route, pas comme
+            un jeu jouable. Les jeux marqués « jouable » tournent réellement on-chain.
           </p>
         </section>
       </div>

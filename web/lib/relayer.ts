@@ -132,4 +132,11 @@ export const GAS = {
   placeBet: 420_000n,
   /** The spin settles every bet in the round in one transaction. */
   spin: (bets: number) => 400_000n + BigInt(bets) * 180_000n,
+  // Blackjack writes a card into storage on every action, and stand/double trigger the
+  // whole showdown (dealer draws to 17, then every hand is settled) in one transaction.
+  deal: 1_300_000n,
+  hit: 900_000n,
+  stand: 1_700_000n,
+  double: 1_700_000n,
+  split: 1_100_000n,
 } as const;

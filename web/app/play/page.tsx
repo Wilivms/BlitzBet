@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { BlackjackPanel } from "@/components/BlackjackPanel";
 import { Pocket } from "@/components/Pocket";
 import { BET_TYPES } from "@/lib/games";
 import { useTable } from "@/lib/useTable";
@@ -17,6 +18,7 @@ export default function PlayPage() {
   const [stake, setStake] = useState("0.05");
   const [betType, setBetType] = useState(1);
   const [betValue, setBetValue] = useState(0);
+  const [tab, setTab] = useState<"coinflip" | "roulette" | "blackjack">("coinflip");
 
   useEffect(() => {
     setSeatId(localStorage.getItem(SEAT_KEY));
@@ -167,81 +169,99 @@ export default function PlayPage() {
         </div>
       </section>
 
-      <section className="felt-card p-5 mb-5">
-        <h2 className="font-bold mb-1">CoinFlip</h2>
-        <p className="text-xs opacity-60 mb-4">Double ou rien, résultat immédiat.</p>
-        <div className="grid grid-cols-2 gap-3">
-          <button className="btn" disabled={busy} onClick={() => flip(0)}>
-            Pile
+      <nav className="grid grid-cols-3 gap-2 mb-5">
+        {(["coinflip", "roulette", "blackjack"] as const).map((t) => (
+          <button
+            key={t}
+            onClick={() => setTab(t)}
+            className={`btn text-sm capitalize ${tab === t ? "btn-primary" : ""}`}
+          >
+            {t === "coinflip" ? "CoinFlip" : t === "roulette" ? "Roulette" : "Blackjack"}
           </button>
-          <button className="btn" disabled={busy} onClick={() => flip(1)}>
-            Face
-          </button>
-        </div>
-      </section>
+        ))}
+      </nav>
 
-      <section className="felt-card p-5">
-        <div className="flex items-center justify-between mb-1">
-          <h2 className="font-bold">Roulette</h2>
-          <span className="text-xs">
-            {wheel?.isOpen ? (
-              <span className="text-emerald-400 pulsing">● mises ouvertes</span>
-            ) : (
-              <span className="opacity-50">● tour fermé</span>
-            )}
-          </span>
-        </div>
-        <div className="flex items-center gap-3 mb-4">
-          <span className="text-xs opacity-60">Dernier tirage</span>
-          <Pocket n={wheel?.lastResult ?? 0} size="sm" />
-        </div>
+      {tab === "coinflip" && (
+        <section className="felt-card p-5">
+          <h2 className="font-bold mb-1">CoinFlip</h2>
+          <p className="text-xs opacity-60 mb-4">Double ou rien, résultat immédiat.</p>
+          <div className="grid grid-cols-2 gap-3">
+            <button className="btn" disabled={busy} onClick={() => flip(0)}>
+              Pile
+            </button>
+            <button className="btn" disabled={busy} onClick={() => flip(1)}>
+              Face
+            </button>
+          </div>
+        </section>
+      )}
 
-        <select
-          className="chip-input mb-3"
-          value={betType}
-          onChange={(e) => {
-            setBetType(Number(e.target.value));
-            setBetValue(0);
-          }}
-        >
-          {BET_TYPES.map((b) => (
-            <option key={b.id} value={b.id}>
-              {b.label} — {b.odds}
-            </option>
-          ))}
-        </select>
+      {tab === "roulette" && (
+        <section className="felt-card p-5">
+          <div className="flex items-center justify-between mb-1">
+            <h2 className="font-bold">Roulette</h2>
+            <span className="text-xs">
+              {wheel?.isOpen ? (
+                <span className="text-emerald-400 pulsing">● mises ouvertes</span>
+              ) : (
+                <span className="opacity-50">● tour fermé</span>
+              )}
+            </span>
+          </div>
+          <div className="flex items-center gap-3 mb-4">
+            <span className="text-xs opacity-60">Dernier tirage</span>
+            <Pocket n={wheel?.lastResult ?? 0} size="sm" />
+          </div>
 
-        {betType === 0 && (
-          <input
-            type="number"
-            min={0}
-            max={36}
-            className="chip-input mb-3"
-            value={betValue}
-            onChange={(e) => setBetValue(Math.max(0, Math.min(36, Number(e.target.value))))}
-            placeholder="Numéro 0-36"
-          />
-        )}
-        {betType === 7 && (
           <select
             className="chip-input mb-3"
-            value={betValue}
-            onChange={(e) => setBetValue(Number(e.target.value))}
+            value={betType}
+            onChange={(e) => {
+              setBetType(Number(e.target.value));
+              setBetValue(0);
+            }}
           >
-            <option value={0}>1re douzaine (1-12)</option>
-            <option value={1}>2e douzaine (13-24)</option>
-            <option value={2}>3e douzaine (25-36)</option>
+            {BET_TYPES.map((b) => (
+              <option key={b.id} value={b.id}>
+                {b.label} — {b.odds}
+              </option>
+            ))}
           </select>
-        )}
 
-        <button
-          className="btn btn-primary w-full"
-          disabled={busy || !wheel?.isOpen}
-          onClick={placeRouletteBet}
-        >
-          {wheel?.isOpen ? "Miser" : "En attente du croupier"}
-        </button>
-      </section>
+          {betType === 0 && (
+            <input
+              type="number"
+              min={0}
+              max={36}
+              className="chip-input mb-3"
+              value={betValue}
+              onChange={(e) => setBetValue(Math.max(0, Math.min(36, Number(e.target.value))))}
+              placeholder="Numéro 0-36"
+            />
+          )}
+          {betType === 7 && (
+            <select
+              className="chip-input mb-3"
+              value={betValue}
+              onChange={(e) => setBetValue(Number(e.target.value))}
+            >
+              <option value={0}>1re douzaine (1-12)</option>
+              <option value={1}>2e douzaine (13-24)</option>
+              <option value={2}>3e douzaine (25-36)</option>
+            </select>
+          )}
+
+          <button
+            className="btn btn-primary w-full"
+            disabled={busy || !wheel?.isOpen}
+            onClick={placeRouletteBet}
+          >
+            {wheel?.isOpen ? "Miser" : "En attente du croupier"}
+          </button>
+        </section>
+      )}
+
+      {tab === "blackjack" && <BlackjackPanel seatId={seatId} stake={stake} />}
     </main>
   );
 }
