@@ -18,5 +18,5 @@ export const GAMES = [
   { key: "coinflip", name: "CoinFlip", tagline: "Pile ou face, double ou rien", status: "live" },
   { key: "roulette", name: "Roulette", tagline: "Européenne, zéro unique, table partagée", status: "live" },
   { key: "blackjack", name: "Blackjack", tagline: "Contre le contrat, split & double", status: "live" },
-  { key: "aviator", name: "Aviator", tagline: "Multiplicateur on-chain, un tick par bloc", status: "roadmap" },
+  { key: "aviator", name: "Aviator", tagline: "Multiplicateur on-chain, un tick par bloc", status: "live" },
 ] as const;

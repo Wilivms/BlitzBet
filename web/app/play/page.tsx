@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { AviatorPanel } from "@/components/AviatorPanel";
 import { BlackjackPanel } from "@/components/BlackjackPanel";
 import { Pocket } from "@/components/Pocket";
 import { BET_TYPES } from "@/lib/games";
@@ -18,7 +19,7 @@ export default function PlayPage() {
   const [stake, setStake] = useState("0.05");
   const [betType, setBetType] = useState(1);
   const [betValue, setBetValue] = useState(0);
-  const [tab, setTab] = useState<"coinflip" | "roulette" | "blackjack">("coinflip");
+  const [tab, setTab] = useState<"coinflip" | "roulette" | "blackjack" | "aviator">("coinflip");
 
   useEffect(() => {
     setSeatId(localStorage.getItem(SEAT_KEY));
@@ -169,14 +170,14 @@ export default function PlayPage() {
         </div>
       </section>
 
-      <nav className="grid grid-cols-3 gap-2 mb-5">
-        {(["coinflip", "roulette", "blackjack"] as const).map((t) => (
+      <nav className="grid grid-cols-4 gap-2 mb-5">
+        {(["coinflip", "roulette", "blackjack", "aviator"] as const).map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
             className={`btn text-sm capitalize ${tab === t ? "btn-primary" : ""}`}
           >
-            {t === "coinflip" ? "CoinFlip" : t === "roulette" ? "Roulette" : "Blackjack"}
+            {t === "coinflip" ? "Flip" : t === "roulette" ? "Roulette" : t === "blackjack" ? "BJ" : "Aviator"}
           </button>
         ))}
       </nav>
@@ -262,6 +263,8 @@ export default function PlayPage() {
       )}
 
       {tab === "blackjack" && <BlackjackPanel seatId={seatId} stake={stake} />}
+
+      {tab === "aviator" && <AviatorPanel mode="player" seatId={seatId} stake={stake} />}
     </main>
   );
 }

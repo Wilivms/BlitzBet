@@ -19,6 +19,7 @@ export const addresses = {
   coinflip: (process.env.NEXT_PUBLIC_COINFLIP ?? "") as `0x${string}`,
   roulette: (process.env.NEXT_PUBLIC_ROULETTE ?? "") as `0x${string}`,
   blackjack: (process.env.NEXT_PUBLIC_BLACKJACK ?? "") as `0x${string}`,
+  aviator: (process.env.NEXT_PUBLIC_AVIATOR ?? "") as `0x${string}`,
 };
 
 export const explorerTx = (hash: string) =>

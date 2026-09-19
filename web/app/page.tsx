@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { QRCodeSVG } from "qrcode.react";
+import { AviatorPanel } from "@/components/AviatorPanel";
 import { Leaderboard } from "@/components/Leaderboard";
 import { Pocket } from "@/components/Pocket";
 import { GAMES } from "@/lib/games";
@@ -151,6 +152,11 @@ export default function TablePage() {
           <code className="text-[11px] opacity-50 mt-3 break-all">{joinUrl}</code>
         </section>
 
+        {/* -------------------------------------------------------------- aviator -- */}
+        <div className="lg:col-span-3">
+          <AviatorPanel mode="table" />
+        </div>
+
         {/* --------------------------------------------------------- leaderboard -- */}
         <section className="felt-card p-6 lg:col-span-2">
           <h2 className="text-xl font-bold mb-4">Classement</h2>
@@ -180,8 +186,8 @@ export default function TablePage() {
             ))}
           </ul>
           <p className="text-[11px] opacity-45 mt-4 leading-relaxed">
-            Aviator n’est pas encore déployé : il figure ici pour la feuille de route, pas comme
-            un jeu jouable. Les jeux marqués « jouable » tournent réellement on-chain.
+            Les quatre jeux tournent on-chain sur Monad testnet. Chaque mise, chaque carte et
+            chaque encaissement est une transaction que vous pouvez ouvrir dans l’explorateur.
           </p>
         </section>
       </div>

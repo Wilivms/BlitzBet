@@ -139,4 +139,10 @@ export const GAS = {
   stand: 1_700_000n,
   double: 1_700_000n,
   split: 1_100_000n,
+  // Aviator: opening clears the previous round's seats, revealing settles the whole table.
+  avOpen: (seats: number) => 500_000n + BigInt(seats) * 60_000n,
+  avBet: 500_000n,
+  avLaunch: 200_000n,
+  avCashOut: 350_000n,
+  avReveal: (seats: number) => 500_000n + BigInt(seats) * 200_000n,
 } as const;
