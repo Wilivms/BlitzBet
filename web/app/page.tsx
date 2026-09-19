@@ -1,196 +1,174 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { QRCodeSVG } from "qrcode.react";
-import { AviatorPanel } from "@/components/AviatorPanel";
+import { GameCard } from "@/components/GameCard";
 import { Leaderboard } from "@/components/Leaderboard";
 import { Pocket } from "@/components/Pocket";
-import { GAMES } from "@/lib/games";
+import { useAviator } from "@/lib/useAviator";
 import { useTable } from "@/lib/useTable";
 
+/** Écran de table : ce que le public voit sur le grand écran. */
 export default function TablePage() {
-  const { state, error } = useTable(800);
+  const { state, error } = useTable(900);
+  const av = useAviator(450);
   const [joinUrl, setJoinUrl] = useState("");
   const [busy, setBusy] = useState<string | null>(null);
-  const [log, setLog] = useState<{ text: string; href?: string }[]>([]);
 
   useEffect(() => {
     setJoinUrl(`${window.location.origin}/play`);
   }, []);
 
-  const say = (text: string, href?: string) =>
-    setLog((l) => [{ text, href }, ...l].slice(0, 8));
-
-  async function croupier(action: "open" | "spin") {
-    setBusy(action);
+  async function call(endpoint: string, body: Record<string, unknown>) {
+    setBusy(String(body.action));
     try {
-      const r = await fetch("/api/roulette", {
+      await fetch(endpoint, {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ action }),
+        body: JSON.stringify(body),
       });
-      const j = await r.json();
-      if (j.error) say(`Erreur : ${j.error}`);
-      else if (action === "open") say(`Nouveau tour ouvert — les mises sont acceptées`, j.explorer);
-      else say(`La bille tombe sur le ${j.result}`, j.explorer);
-    } catch (e) {
-      say(`Erreur : ${(e as Error).message}`);
     } finally {
       setBusy(null);
     }
   }
 
   const wheel = state?.roulette;
-  const totalChips = useMemo(
-    () => state?.players.reduce((a, p) => a + Number(p.chips), 0) ?? 0,
-    [state],
-  );
+  const phase = av?.phase ?? "idle";
+  const flying = phase === "flying";
 
   return (
-    <main className="mx-auto max-w-6xl px-4 py-8">
-      <header className="flex flex-wrap items-end justify-between gap-4 mb-8">
+    <main className="mx-auto max-w-5xl px-5 py-10">
+      <header className="flex flex-wrap items-end justify-between gap-6 mb-10">
         <div>
-          <h1 className="text-4xl font-black tracking-tight">
-            Blitz<span className="gold">Bet</span>
+          <h1 className="text-3xl font-bold tracking-tight">
+            Blitz<span className="accent">Bet</span>
           </h1>
-          <p className="opacity-70 text-sm mt-1">
-            Casino on-chain sur Monad testnet — le public mise depuis son téléphone, sans wallet.
+          <p className="text-sm muted mt-1">
+            Casino on-chain sur Monad testnet. Scannez, misez, sans wallet.
           </p>
         </div>
         <div className="text-right">
-          <div className="text-xs uppercase tracking-wider opacity-55">Bankroll de la maison</div>
-          <div className="text-3xl font-bold gold tabular-nums">
-            {state ? Number(state.bankroll).toFixed(2) : "—"} <span className="text-lg">MON</span>
-          </div>
-          <div className="text-xs opacity-55 mt-0.5">
-            {totalChips.toFixed(2)} MON en jetons sur la table
+          <div className="text-[11px] uppercase tracking-widest muted">Bankroll</div>
+          <div className="text-2xl font-semibold tabular">
+            {state ? Number(state.bankroll).toFixed(2) : "—"}
+            <span className="text-sm muted ml-1.5">MON</span>
           </div>
         </div>
       </header>
 
       {error && (
-        <div className="felt-card p-4 mb-6 border-rose-500/40 text-rose-200 text-sm">
-          {error}
-          <div className="opacity-70 mt-1">
-            Vérifie que <code>web/.env.local</code> contient bien les adresses de contrats.
-          </div>
+        <div className="card p-4 mb-8 text-sm" style={{ borderColor: "rgba(160,5,93,.5)" }}>
+          <span style={{ color: "#f0709f" }}>{error}</span>
         </div>
       )}
 
-      <div className="grid gap-6 lg:grid-cols-3">
-        {/* ------------------------------------------------------------- roulette -- */}
-        <section className="felt-card p-6 lg:col-span-2">
-          <div className="flex items-center justify-between mb-5">
-            <h2 className="text-xl font-bold">
-              Roulette <span className="opacity-50 text-sm font-normal">européenne, zéro unique</span>
-            </h2>
-            <span className="text-xs opacity-60">
+      <div className="grid gap-4 sm:grid-cols-2 mb-10">
+        <GameCard
+          name="Aviator"
+          tagline="Le multiplicateur monte d’un cran par bloc Monad."
+          live={flying || phase === "betting"}
+          status={
+            phase === "betting" ? "mises ouvertes" : flying ? "en vol" : phase === "settled" ? "crashé" : "au sol"
+          }
+        >
+          <div className="text-center py-3">
+            <div
+              className="text-5xl font-bold tabular"
+              style={{ color: flying ? "var(--purple)" : phase === "settled" ? "#f0709f" : "var(--faint)" }}
+            >
+              {(flying ? av!.multiplier : phase === "settled" ? (av?.lastCrash ?? 1) : 1).toFixed(2)}×
+            </div>
+            <div className="text-xs muted mt-1">
+              {flying ? `${av!.tick} blocs de vol` : phase === "settled" ? "crashé" : "prêt au décollage"}
+            </div>
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              className="btn"
+              disabled={busy !== null || phase === "betting" || flying}
+              onClick={() => call("/api/aviator", { action: "open" })}
+            >
+              Ouvrir
+            </button>
+            <button
+              className="btn btn-primary"
+              disabled={busy !== null || phase !== "betting"}
+              onClick={() => call("/api/aviator", { action: "launch" })}
+            >
+              Décoller
+            </button>
+          </div>
+        </GameCard>
+
+        <GameCard
+          name="Roulette"
+          tagline="Européenne à zéro unique. Toute la table sur la même roue."
+          live={Boolean(wheel?.isOpen)}
+          status={wheel?.isOpen ? "mises ouvertes" : "fermé"}
+        >
+          <div className="flex items-center gap-4 py-3">
+            <Pocket n={wheel?.lastResult ?? 0} />
+            <div className="text-xs muted">
               Tour #{wheel?.roundId ?? "—"}
-              {wheel?.isOpen ? (
-                <span className="ml-2 text-emerald-400 pulsing">● mises ouvertes</span>
-              ) : (
-                <span className="ml-2 opacity-50">● fermé</span>
-              )}
-            </span>
-          </div>
-
-          <div className="flex items-center gap-6">
-            <div className="text-center">
-              <div className="text-xs uppercase tracking-wider opacity-55 mb-2">Dernier tirage</div>
-              <Pocket n={wheel?.lastResult ?? 0} />
-            </div>
-            <div className="flex-1">
-              <div className="text-sm opacity-70 mb-3">
-                {wheel?.betsInRound ?? 0} mise(s) sur le tapis pour ce tour.
-              </div>
-              <div className="flex gap-3">
-                <button
-                  className="btn"
-                  disabled={busy !== null || wheel?.isOpen}
-                  onClick={() => croupier("open")}
-                >
-                  {busy === "open" ? "…" : "Ouvrir un tour"}
-                </button>
-                <button
-                  className="btn btn-primary"
-                  disabled={busy !== null || !wheel?.isOpen}
-                  onClick={() => croupier("spin")}
-                >
-                  {busy === "spin" ? "La bille tourne…" : "Lancer la bille"}
-                </button>
-              </div>
+              <br />
+              {wheel?.betsInRound ?? 0} mise(s) sur le tapis
             </div>
           </div>
-
-          <div className="mt-6 border-t border-white/10 pt-4 space-y-1 text-sm">
-            {log.length === 0 && <p className="opacity-40">Le journal du croupier s’affichera ici.</p>}
-            {log.map((l, i) => (
-              <p key={i} className="opacity-80">
-                {l.href ? (
-                  <a className="underline decoration-dotted" href={l.href} target="_blank" rel="noreferrer">
-                    {l.text}
-                  </a>
-                ) : (
-                  l.text
-                )}
-              </p>
-            ))}
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              className="btn"
+              disabled={busy !== null || wheel?.isOpen}
+              onClick={() => call("/api/roulette", { action: "open" })}
+            >
+              Ouvrir un tour
+            </button>
+            <button
+              className="btn btn-primary"
+              disabled={busy !== null || !wheel?.isOpen}
+              onClick={() => call("/api/roulette", { action: "spin" })}
+            >
+              Lancer
+            </button>
           </div>
-        </section>
+        </GameCard>
 
-        {/* ------------------------------------------------------------------ QR -- */}
-        <section className="felt-card p-6 flex flex-col items-center justify-center text-center">
-          <h2 className="text-lg font-bold mb-1">Rejoindre la table</h2>
-          <p className="text-xs opacity-60 mb-4">
-            Scannez, choisissez un pseudo, la maison vous offre vos jetons.
-          </p>
-          {joinUrl && (
-            <div className="bg-white p-3 rounded-xl">
-              <QRCodeSVG value={joinUrl} size={168} />
-            </div>
-          )}
-          <code className="text-[11px] opacity-50 mt-3 break-all">{joinUrl}</code>
-        </section>
+        <GameCard
+          name="CoinFlip"
+          tagline="Pile ou face, double ou rien. Les joueurs misent depuis leur téléphone."
+          live
+          status="en ligne"
+          meta="2× · résultat en une transaction"
+        />
 
-        {/* -------------------------------------------------------------- aviator -- */}
-        <div className="lg:col-span-3">
-          <AviatorPanel mode="table" />
-        </div>
+        <GameCard
+          name="Blackjack"
+          tagline="Chaque joueur affronte le contrat. Tirer, rester, doubler, séparer."
+          live
+          status="en ligne"
+          meta="blackjack payé 3:2 · croupier à 17"
+        />
+      </div>
 
-        {/* --------------------------------------------------------- leaderboard -- */}
-        <section className="felt-card p-6 lg:col-span-2">
-          <h2 className="text-xl font-bold mb-4">Classement</h2>
+      <div className="grid gap-4 sm:grid-cols-3">
+        <section className="card p-5 sm:col-span-2">
+          <h2 className="font-semibold mb-4">Classement</h2>
           <Leaderboard players={state?.players ?? []} />
         </section>
 
-        {/* ---------------------------------------------------------- game menu -- */}
-        <section className="felt-card p-6">
-          <h2 className="text-xl font-bold mb-4">Les jeux</h2>
-          <ul className="space-y-3">
-            {GAMES.map((g) => (
-              <li key={g.key} className="flex items-start justify-between gap-3">
-                <div>
-                  <div className="font-semibold">{g.name}</div>
-                  <div className="text-xs opacity-60">{g.tagline}</div>
-                </div>
-                <span
-                  className={`shrink-0 text-[10px] uppercase tracking-wider rounded-full px-2 py-1 ${
-                    g.status === "live"
-                      ? "bg-emerald-500/15 text-emerald-300 ring-1 ring-emerald-400/30"
-                      : "bg-amber-500/10 text-amber-300/80 ring-1 ring-amber-400/25"
-                  }`}
-                >
-                  {g.status === "live" ? "jouable" : "roadmap"}
-                </span>
-              </li>
-            ))}
-          </ul>
-          <p className="text-[11px] opacity-45 mt-4 leading-relaxed">
-            Les quatre jeux tournent on-chain sur Monad testnet. Chaque mise, chaque carte et
-            chaque encaissement est une transaction que vous pouvez ouvrir dans l’explorateur.
-          </p>
+        <section className="card p-5 flex flex-col items-center justify-center text-center">
+          <h2 className="font-semibold mb-1">Rejoindre</h2>
+          <p className="text-xs muted mb-4">La maison offre les jetons.</p>
+          {joinUrl && (
+            <div className="bg-white p-2.5 rounded-xl">
+              <QRCodeSVG value={joinUrl} size={132} />
+            </div>
+          )}
         </section>
       </div>
+
+      <footer className="mt-10 text-[11px] muted text-center">
+        Monad testnet · chain 10143 · les quatre jeux tournent on-chain
+      </footer>
     </main>
   );
 }

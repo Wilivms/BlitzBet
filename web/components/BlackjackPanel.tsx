@@ -71,9 +71,9 @@ export function BlackjackPanel({ seatId, stake }: { seatId: string; stake: strin
     : 0;
 
   return (
-    <section className="felt-card p-5">
+    <section className="card p-5">
       <h2 className="font-bold mb-1">Blackjack</h2>
-      <p className="text-xs opacity-60 mb-4">
+      <p className="text-xs muted mb-4">
         Le croupier tire jusqu’à 17. Blackjack payé 3:2.
       </p>
 
@@ -82,12 +82,12 @@ export function BlackjackPanel({ seatId, stake }: { seatId: string; stake: strin
       {game && game.gameId > 0 && (
         <div className="space-y-4 mb-4">
           <div>
-            <div className="text-xs uppercase tracking-wider opacity-55 mb-1.5">Croupier</div>
+            <div className="text-[11px] uppercase tracking-widest muted mb-1.5">Croupier</div>
             <CardRow cards={game.dealer.cards} total={game.finished ? game.dealer.total : undefined} />
           </div>
           {game.hands.map((h, i) => (
             <div key={i} className={i === game.activeHand && live ? "" : "opacity-70"}>
-              <div className="text-xs uppercase tracking-wider opacity-55 mb-1.5">
+              <div className="text-[11px] uppercase tracking-widest muted mb-1.5">
                 {game.hands.length > 1 ? `Votre main ${i + 1}` : "Votre main"}
                 {h.doubled && " · doublée"}
                 {game.finished && ` · ${h.state}`}

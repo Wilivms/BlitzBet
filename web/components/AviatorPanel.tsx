@@ -40,33 +40,37 @@ export function AviatorPanel({
   // The multiplier is a function of block height, so it steps rather than glides. That is
   // the point, and the UI shows the tick count next to it to make it obvious.
   const shown = flying ? av!.multiplier : phase === "settled" ? (av?.lastCrash ?? 1) : 1;
-  const colour = flying ? "text-emerald-300" : phase === "settled" ? "text-rose-400" : "opacity-60";
+    const colourStyle = {
+    color: flying ? "var(--purple)" : phase === "settled" ? "#f0709f" : "var(--faint)",
+  };
 
   return (
-    <section className="felt-card p-5">
+    <section className="card p-5">
       <div className="flex items-center justify-between mb-1">
-        <h2 className="font-bold">Aviator</h2>
-        <span className="text-xs opacity-60">
+        <h2 className="font-semibold">Aviator</h2>
+        <span className="text-xs muted">
           Tour #{av?.roundId ?? "—"} ·{" "}
           {phase === "betting" ? (
-            <span className="text-emerald-400 pulsing">mises ouvertes</span>
+            <span className="pulsing" style={{ color: "#4ade80" }}>mises ouvertes</span>
           ) : flying ? (
-            <span className="text-emerald-300 pulsing">en vol</span>
+            <span className="pulsing" style={{ color: "var(--purple)" }}>en vol</span>
           ) : phase === "settled" ? (
-            <span className="text-rose-400">crashé</span>
+            <span style={{ color: "#f0709f" }}>crashé</span>
           ) : (
-            <span className="opacity-50">au sol</span>
+            <span className="muted">au sol</span>
           )}
         </span>
       </div>
-      <p className="text-xs opacity-60 mb-4">
+      <p className="text-xs muted mb-4">
         Le multiplicateur avance d’un cran par bloc Monad (~300 ms). Point de crash engagé
         avant la première mise.
       </p>
 
       <div className="text-center py-6">
-        <div className={`text-6xl font-black tabular-nums ${colour}`}>{shown.toFixed(2)}×</div>
-        <div className="text-xs opacity-50 mt-1">
+        <div className="text-6xl font-bold tabular" style={colourStyle}>
+          {shown.toFixed(2)}×
+        </div>
+        <div className="text-xs muted mt-1">
           {flying ? `${av!.tick} blocs de vol` : phase === "settled" ? "crashé à ce multiplicateur" : "prêt"}
         </div>
       </div>
@@ -116,9 +120,9 @@ export function AviatorPanel({
       )}
 
       <div className="mt-4 border-t border-white/10 pt-3 space-y-1 text-xs">
-        {av?.seats.length === 0 && <p className="opacity-40">Personne à bord.</p>}
+        {av?.seats.length === 0 && <p className="muted">Personne à bord.</p>}
         {av?.seats.map((s) => (
-          <div key={s.seatId} className="flex justify-between opacity-75">
+          <div key={s.seatId} className="flex justify-between muted">
             <span className="font-mono">{s.seatId.slice(2, 8)}</span>
             <span>
               {s.wager} MON

@@ -13,10 +13,32 @@ const RED = new Set([1, 3, 5, 7, 9, 12, 14, 16, 18, 19, 21, 23, 25, 27, 30, 32, 
 export const isRed = (n: number) => RED.has(n);
 export const pocketColour = (n: number) => (n === 0 ? "green" : isRed(n) ? "red" : "black");
 
-/** État réel de chaque jeu, affiché tel quel dans l'UI et le README. */
-export const GAMES = [
-  { key: "coinflip", name: "CoinFlip", tagline: "Pile ou face, double ou rien", status: "live" },
-  { key: "roulette", name: "Roulette", tagline: "Européenne, zéro unique, table partagée", status: "live" },
-  { key: "blackjack", name: "Blackjack", tagline: "Contre le contrat, split & double", status: "live" },
-  { key: "aviator", name: "Aviator", tagline: "Multiplicateur on-chain, un tick par bloc", status: "live" },
-] as const;
+export type GameKey = "coinflip" | "roulette" | "blackjack" | "aviator";
+
+/** Les quatre jeux, tous déployés et jouables on-chain. */
+export const GAMES: { key: GameKey; name: string; tagline: string; meta: string }[] = [
+  {
+    key: "aviator",
+    name: "Aviator",
+    tagline: "Le multiplicateur monte d’un cran par bloc. Encaissez avant le crash.",
+    meta: "1.02× par bloc · provably fair",
+  },
+  {
+    key: "coinflip",
+    name: "CoinFlip",
+    tagline: "Pile ou face. Résultat immédiat, en une transaction.",
+    meta: "2× · double ou rien",
+  },
+  {
+    key: "roulette",
+    name: "Roulette",
+    tagline: "Européenne à zéro unique. Toute la table mise sur la même roue.",
+    meta: "jusqu’à 35:1",
+  },
+  {
+    key: "blackjack",
+    name: "Blackjack",
+    tagline: "Contre le contrat. Tirer, rester, doubler, séparer.",
+    meta: "blackjack payé 3:2",
+  },
+];
