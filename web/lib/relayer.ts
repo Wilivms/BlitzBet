@@ -9,6 +9,7 @@ import {
 } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
 import { monadTestnet } from "./chain";
+import { kv } from "./kv";
 
 /**
  * BlitzBet has exactly one wallet. It deploys the contracts, holds the bankroll and signs
@@ -18,9 +19,15 @@ import { monadTestnet } from "./chain";
  * blocks are 300ms and there is no global mempool, so five people tapping "bet" at once
  * means five transactions racing for the same nonce. Everything below exists to stop that:
  *
- *  - one serialised queue, so only one transaction is built and sent at a time;
- *  - a locally tracked nonce (the docs recommend this over hammering
- *    eth_getTransactionCount), resynced from the chain whenever a send fails;
+ *  - a distributed lock (lib/kv.ts) around "read the chain's pending nonce, sign, broadcast",
+ *    so only one send is in flight at a time -- across every Vercel instance, not just this
+ *    process. An in-memory queue alone is not enough: Vercel can run a route's handler in
+ *    several concurrent serverless instances, each with its own memory, which would defeat
+ *    a plain in-process mutex exactly when the table gets busy.
+ *  - re-deriving the nonce from eth_getTransactionCount(pending) on every send rather than
+ *    keeping a local counter, so a send that fails before broadcasting never leaves a
+ *    permanent gap in the account's nonce sequence (a gap would stall every later
+ *    transaction until something fills it).
  *  - an explicit gas limit on every call, because Monad charges the gas *limit*, not the
  *    gas used. A lazy 30M limit would burn ~3 MON per bet.
  */
@@ -56,34 +63,21 @@ function walletClient() {
   });
 }
 
-// ------------------------------------------------------------------ nonce queue --
+// ------------------------------------------------------------------ nonce lock --
 
-let nextNonce: number | null = null;
-let queue: Promise<unknown> = Promise.resolve();
-
-/** Run `job` after every previously queued job, with an exclusive nonce. */
-function serialise<T>(job: (nonce: number) => Promise<T>): Promise<T> {
-  const run = queue.then(async () => {
-    if (nextNonce === null) {
-      nextNonce = await publicClient.getTransactionCount({
-        address: relayerAccount().address,
-        blockTag: "pending",
-      });
-    }
-    const nonce = nextNonce;
-    try {
-      const out = await job(nonce);
-      nextNonce = nonce + 1;
-      return out;
-    } catch (err) {
-      // Any failure may have left our counter ahead of or behind the chain. Drop it and
-      // re-read on the next job rather than jamming every later bet behind a bad nonce.
-      nextNonce = null;
-      throw err;
-    }
+/**
+ * Run `job` exclusively, holding a distributed lock for the relayer address. The nonce is
+ * read fresh from the chain inside the lock every time: if `job` throws before broadcasting,
+ * nothing was ever consumed, so the next caller gets the same nonce back rather than a gap.
+ */
+function withNonce<T>(job: (nonce: number) => Promise<T>): Promise<T> {
+  return kv.withLock(`nonce:${relayerAccount().address}`, async () => {
+    const nonce = await publicClient.getTransactionCount({
+      address: relayerAccount().address,
+      blockTag: "pending",
+    });
+    return job(nonce);
   });
-  queue = run.catch(() => undefined);
-  return run;
 }
 
 export type SendArgs = {
@@ -98,7 +92,7 @@ export type SendArgs = {
 export type SendResult = { hash: Hash; receipt: TransactionReceipt };
 
 export async function send({ address, abi, functionName, args, gas }: SendArgs): Promise<SendResult> {
-  return serialise(async (nonce) => {
+  return withNonce(async (nonce) => {
     const wallet = walletClient();
     const hash = await wallet.writeContract({
       address,

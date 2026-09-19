@@ -37,16 +37,19 @@ détient.
 
 ### Adresses déployées (Monad testnet, chain 10143)
 
-> ⚠️ **À remplir après déploiement.** Tant que ces lignes contiennent `0x...`, rien n'est
-> déployé et aucun des jeux ci-dessus n'est jouable en ligne.
+Déployés le 19 septembre 2026, 9 transactions (5 créations + 4 `setGame`), toutes
+confirmées avec succès (`status=0x1`).
 
 | Contrat | Adresse |
 |---|---|
-| CasinoHub | `0x...` |
-| CoinFlip | `0x...` |
-| Roulette | `0x...` |
-| Blackjack | `0x...` |
-| Aviator | `0x...` |
+| CasinoHub | [`0x46a1b46016cf0c0e328aa5d304f2f11257b21a16`](https://testnet.monadexplorer.com/address/0x46a1b46016cf0c0e328aa5d304f2f11257b21a16) |
+| CoinFlip | [`0x271926351dbd8e3df8b123a72a643ff3a16c71e9`](https://testnet.monadexplorer.com/address/0x271926351dbd8e3df8b123a72a643ff3a16c71e9) |
+| Roulette | [`0xb8541269534707b494aeaf61cf6bb2688b3cfe84`](https://testnet.monadexplorer.com/address/0xb8541269534707b494aeaf61cf6bb2688b3cfe84) |
+| Blackjack | [`0x4fc577fe0aed3815dbe1cbea0ab18f7b7317e7ef`](https://testnet.monadexplorer.com/address/0x4fc577fe0aed3815dbe1cbea0ab18f7b7317e7ef) |
+| Aviator | [`0xbef18258cc7f7c4f29042dd1c11f3ff549505e56`](https://testnet.monadexplorer.com/address/0xbef18258cc7f7c4f29042dd1c11f3ff549505e56) |
+
+Wallet unique (déploiement + bankroll + signature de toutes les mises) :
+[`0xcFe7934D31F6C22DDaFeD72FC065D13eFF48b368`](https://testnet.monadexplorer.com/address/0xcFe7934D31F6C22DDaFeD72FC065D13eFF48b368)
 
 ## Architecture
 
@@ -85,9 +88,11 @@ même dans le même bloc. Un test le vérifie explicitement.
 limite explicite et serrée. Une limite paresseuse à 30M coûterait ~3 MON par mise.
 
 **4. Reserve balance de 10 MON, pas de mempool global** → avec un wallet unique qui signe pour
-cinq joueurs simultanés, les nonces sont le point de rupture n°1. `web/lib/relayer.ts`
-sérialise tous les envois dans une file unique, suit le nonce localement et se resynchronise
-sur la chaîne à la moindre erreur.
+cinq joueurs simultanés, les nonces sont le point de rupture n°1. `web/lib/relayer.ts` prend un
+verrou distribué (Redis, via `web/lib/kv.ts`) autour de « lire le nonce en attente, signer,
+diffuser », et relit ce nonce depuis la chaîne à chaque appel plutôt que de garder un compteur
+local — un compteur en mémoire de processus ne suffit pas une fois déployé sur des fonctions
+serverless Vercel, qui peuvent exécuter plusieurs instances en parallèle sous charge.
 
 ## Équité et limites — à lire avant de jouer avec du vrai argent (ne le faites pas)
 

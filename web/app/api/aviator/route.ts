@@ -52,7 +52,7 @@ async function snapshot() {
 let revealing = false;
 async function autoRevealIfCrashed(snap: Awaited<ReturnType<typeof snapshot>>) {
   if (snap.phase !== "flying" || revealing) return snap;
-  const seed = seedFor(snap.roundId);
+  const seed = await seedFor(snap.roundId);
   if (!seed) return snap;
 
   const crashBp = (await publicClient.readContract({
@@ -104,7 +104,7 @@ export async function POST(req: Request) {
       const seatsNow = Number(
         (await publicClient.readContract({ ...av, functionName: "seatCount" })) as bigint,
       );
-      const { commitment } = mintSeed(nextRound);
+      const { commitment } = await mintSeed(nextRound);
       const { hash } = await send({
         ...av,
         functionName: "openRound",
