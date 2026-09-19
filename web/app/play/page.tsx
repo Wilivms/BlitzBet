@@ -2,9 +2,11 @@
 
 import { useEffect, useState } from "react";
 import { AviatorPanel } from "@/components/AviatorPanel";
+import { Coin } from "@/components/Coin";
+import { Wheel } from "@/components/Wheel";
+import { fmtCredits, toCredits } from "@/lib/credits";
 import { BlackjackPanel } from "@/components/BlackjackPanel";
 import { GameCard } from "@/components/GameCard";
-import { Pocket } from "@/components/Pocket";
 import { BET_TYPES, GAMES, type GameKey } from "@/lib/games";
 import { useTable } from "@/lib/useTable";
 
@@ -21,6 +23,8 @@ export default function PlayPage() {
   const [game, setGame] = useState<GameKey | null>(null);
   const [betType, setBetType] = useState(1);
   const [betValue, setBetValue] = useState(0);
+  const [flipResult, setFlipResult] = useState<0 | 1 | null>(null);
+  const [flipping, setFlipping] = useState(false);
 
   useEffect(() => {
     setSeatId(localStorage.getItem(SEAT_KEY));
@@ -62,9 +66,13 @@ export default function PlayPage() {
         body: JSON.stringify({ seatId, wager: stake, choice }),
       });
       const j = await r.json();
-      if (j.error) setMsg({ text: j.error, tone: "lose" });
-      else {
+      if (j.error) {
+        setFlipping(false);
+        setMsg({ text: j.error, tone: "lose" });
+      } else {
         const face = j.result === 0 ? "Pile" : "Face";
+        setFlipping(false);
+        setFlipResult(j.result === 0 ? 0 : 1);
         setMsg({
           text: j.won ? `${face} — gagné, mise doublée.` : `${face} — perdu.`,
           tone: j.won ? "win" : "lose",
@@ -136,9 +144,9 @@ export default function PlayPage() {
           <div className="text-lg font-semibold">{me?.nickname ?? "…"}</div>
         </div>
         <div className="text-right">
-          <div className="text-[11px] uppercase tracking-widest muted">Jetons</div>
+          <div className="text-[11px] uppercase tracking-widest muted">Crédits</div>
           <div className="text-xl font-semibold tabular accent">
-            {me ? Number(me.chips).toFixed(3) : "—"}
+            {me ? fmtCredits(me.chips) : "—"}
           </div>
         </div>
       </header>
@@ -183,7 +191,7 @@ export default function PlayPage() {
           </button>
 
           <div className="card p-4 mb-4">
-            <div className="text-[11px] uppercase tracking-widest muted mb-2">Mise (MON)</div>
+            <div className="text-[11px] uppercase tracking-widest muted mb-2">Mise (crédits)</div>
             <div className="grid grid-cols-4 gap-2">
               {STAKES.map((s) => (
                 <button
@@ -191,7 +199,7 @@ export default function PlayPage() {
                   onClick={() => setStake(s)}
                   className={`btn text-sm ${stake === s ? "btn-primary" : ""}`}
                 >
-                  {s}
+                  {toCredits(s)}
                 </button>
               ))}
             </div>
@@ -201,6 +209,8 @@ export default function PlayPage() {
             <section className="card p-5">
               <h2 className="font-semibold mb-1">CoinFlip</h2>
               <p className="text-xs muted mb-4">Double ou rien, résultat immédiat.</p>
+              <Coin result={flipResult} spinning={flipping} />
+              <div className="h-3" />
               <div className="grid grid-cols-2 gap-3">
                 <button className="btn" disabled={busy} onClick={() => flip(0)}>
                   Pile
@@ -221,10 +231,10 @@ export default function PlayPage() {
                   {wheel?.isOpen ? "mises ouvertes" : "tour fermé"}
                 </span>
               </div>
-              <div className="flex items-center gap-3 mb-4">
-                <Pocket n={wheel?.lastResult ?? 0} size="sm" />
-                <span className="text-xs muted">dernier tirage</span>
-              </div>
+              <Wheel result={wheel?.lastResult ?? null} spinning={Boolean(wheel?.isOpen)} />
+              <p className="text-center text-xs muted mb-4 mt-2">
+                {wheel?.isOpen ? "la roue tourne — misez" : "dernier tirage"}
+              </p>
 
               <select
                 className="input mb-3"
@@ -268,7 +278,7 @@ export default function PlayPage() {
                 disabled={busy || !wheel?.isOpen}
                 onClick={placeRouletteBet}
               >
-                {wheel?.isOpen ? "Miser" : "En attente du croupier"}
+                {wheel?.isOpen ? `Miser ${toCredits(stake)} crédits` : "En attente du croupier"}
               </button>
             </section>
           )}

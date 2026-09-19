@@ -136,3 +136,181 @@ main {
 .tabular {
   font-variant-numeric: tabular-nums;
 }
+
+/* ============================================================
+   ANIMATIONS DE JEU
+   Tout est piloté par le résultat réel renvoyé par les routes API :
+   les composants ne font que traduire une valeur en transform.
+   ============================================================ */
+
+/* ---------- CoinFlip : rotation 3D autour de l'axe Y ---------- */
+.coin-stage {
+  perspective: 900px;
+  height: 104px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.coin {
+  position: relative;
+  width: 96px;
+  height: 96px;
+  transform-style: preserve-3d;
+  transition: transform 1.85s cubic-bezier(0.18, 0.72, 0.16, 1);
+}
+.coin-face {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  font-weight: 700;
+  font-size: 1.05rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  backface-visibility: hidden;
+  border: 2px solid rgba(251, 250, 249, 0.22);
+}
+.coin-heads {
+  background: linear-gradient(150deg, #927ffa, #6b56e0);
+  color: #0e0a1f;
+}
+.coin-tails {
+  background: linear-gradient(150deg, #2a2735, #17161d);
+  color: var(--white);
+  transform: rotateY(180deg);
+}
+
+/* ---------- Roulette : roue + bille ---------- */
+.wheel-stage {
+  position: relative;
+  width: 188px;
+  height: 188px;
+  margin: 0 auto;
+}
+.wheel {
+  position: absolute;
+  inset: 0;
+  border-radius: 999px;
+  border: 3px solid rgba(131, 110, 249, 0.42);
+  background:
+    repeating-conic-gradient(#17161d 0deg 9.73deg, #241f33 9.73deg 19.46deg);
+  transition: transform 3.6s cubic-bezier(0.11, 0.73, 0.12, 1);
+  box-shadow: inset 0 0 34px rgba(0, 0, 0, 0.66);
+}
+.wheel-hub {
+  position: absolute;
+  inset: 32%;
+  border-radius: 999px;
+  background: var(--surface-2);
+  border: 1px solid var(--line-strong);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 1.6rem;
+  font-variant-numeric: tabular-nums;
+}
+.wheel-marker {
+  position: absolute;
+  top: -5px;
+  left: 50%;
+  translate: -50% 0;
+  width: 0;
+  height: 0;
+  border-left: 7px solid transparent;
+  border-right: 7px solid transparent;
+  border-top: 13px solid var(--purple);
+  z-index: 3;
+}
+.ball {
+  position: absolute;
+  inset: 0;
+  transition: transform 3.6s cubic-bezier(0.14, 0.68, 0.1, 1);
+}
+.ball::after {
+  content: "";
+  position: absolute;
+  top: 9px;
+  left: 50%;
+  translate: -50% 0;
+  width: 11px;
+  height: 11px;
+  border-radius: 999px;
+  background: var(--white);
+  box-shadow: 0 0 9px rgba(251, 250, 249, 0.75);
+}
+
+/* ---------- Blackjack : distribution échelonnée + flip ---------- */
+@keyframes dealIn {
+  from {
+    opacity: 0;
+    transform: translate(26px, -34px) rotateY(180deg) scale(0.86);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.card-deal {
+  animation: dealIn 0.46s cubic-bezier(0.2, 0.78, 0.22, 1) backwards;
+  transform-style: preserve-3d;
+}
+
+/* ---------- Aviator : montée puis crash ---------- */
+.sky {
+  position: relative;
+  height: 172px;
+  border-radius: 12px;
+  overflow: hidden;
+  background:
+    linear-gradient(180deg, rgba(131, 110, 249, 0.13), transparent 62%),
+    var(--surface-2);
+  border: 1px solid var(--line);
+}
+.sky-grid {
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(131, 110, 249, 0.09) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(131, 110, 249, 0.09) 1px, transparent 1px);
+  background-size: 34px 34px;
+}
+.trail {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--purple));
+  transform-origin: left bottom;
+  transition: width 0.3s linear, transform 0.3s linear;
+}
+.plane {
+  position: absolute;
+  font-size: 1.85rem;
+  line-height: 1;
+  transition: transform 0.3s linear;
+  filter: drop-shadow(0 0 9px rgba(131, 110, 249, 0.55));
+}
+@keyframes crashFall {
+  0% { transform: translate(0, 0) rotate(0deg); opacity: 1; }
+  18% { transform: translate(8px, -6px) rotate(14deg); }
+  100% { transform: translate(78px, 150px) rotate(96deg); opacity: 0; }
+}
+.plane-crashed {
+  animation: crashFall 1.05s cubic-bezier(0.5, 0.05, 0.9, 0.6) forwards;
+}
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-7px); }
+  40% { transform: translateX(6px); }
+  60% { transform: translateX(-4px); }
+  80% { transform: translateX(3px); }
+}
+.shake { animation: shake 0.42s ease-in-out; }
+
+@media (prefers-reduced-motion: reduce) {
+  .coin, .wheel, .ball, .plane, .trail { transition: none !important; }
+  .card-deal, .plane-crashed, .shake, .pulsing { animation: none !important; }
+}

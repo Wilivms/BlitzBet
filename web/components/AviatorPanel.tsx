@@ -1,6 +1,8 @@
 "use client";
 import { useState } from "react";
 import { useAviator } from "@/lib/useAviator";
+import { Sky } from "./Sky";
+import { toCredits } from "@/lib/credits";
 
 async function post(body: Record<string, unknown>) {
   const r = await fetch("/api/aviator", {
@@ -66,7 +68,9 @@ export function AviatorPanel({
         avant la première mise.
       </p>
 
-      <div className="text-center py-6">
+      <Sky multiplier={shown} flying={flying} crashed={phase === "settled"} />
+
+      <div className="text-center py-4">
         <div className="text-6xl font-bold tabular" style={colourStyle}>
           {shown.toFixed(2)}×
         </div>
@@ -97,7 +101,7 @@ export function AviatorPanel({
               disabled={busy || phase !== "betting"}
               onClick={() => act("bet")}
             >
-              {phase === "betting" ? `Miser ${stake} MON` : "En attente du prochain tour"}
+              {phase === "betting" ? `Miser ${toCredits(stake ?? "0")} crédits` : "En attente du prochain tour"}
             </button>
           )}
           {mine && !mine.cashedOut && (

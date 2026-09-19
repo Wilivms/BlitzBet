@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { CardRow } from "./Card";
+import { toCredits } from "@/lib/credits";
 
 type Hand = {
   cards: number[];
@@ -132,7 +133,7 @@ export function BlackjackPanel({ seatId, stake }: { seatId: string; stake: strin
         </div>
       ) : (
         <button className="btn btn-primary w-full" disabled={busy} onClick={() => act("deal")}>
-          {busy ? "…" : `Distribuer (${stake} MON)`}
+          {busy ? "…" : `Distribuer (${toCredits(stake)} crédits)`}
         </button>
       )}
     </section>
