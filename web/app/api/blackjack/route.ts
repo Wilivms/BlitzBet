@@ -5,6 +5,7 @@ import { addresses, explorerTx } from "@/lib/chain";
 import { GAS, publicClient, send } from "@/lib/relayer";
 import { isSeatId } from "@/lib/seat";
 import { settleTreasury } from "@/lib/treasury";
+import { invalidate } from "@/lib/cache";
 
 export const dynamic = "force-dynamic";
 
@@ -102,6 +103,7 @@ export async function POST(req: Request) {
 
     const game = await readGame(gameId);
     const treasury = await settleTreasury(receipt);
+    invalidate("state"); // le solde du joueur vient de changer
     return NextResponse.json({ ...game, hash, explorer: explorerTx(hash), treasury });
   } catch (err) {
     return NextResponse.json({ error: (err as Error).message }, { status: 500 });

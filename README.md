@@ -123,8 +123,25 @@ Tous les contrats de ce dépôt sont écrits pour ce projet. `pcaversaccio/solid
 l'architecture par `bytes32` de siège plutôt que par `msg.sender` — imposée par le wallet
 unique — rendait l'adaptation plus longue que l'écriture directe.
 
-Dépendances : `forge-std` (tests), `viem` (RPC), `next` / `react` / `tailwind` (front),
-`qrcode.react` (QR de la table).
+Dépendances : `forge-std` (tests), `viem` (RPC), `next` / `react` (front), `three.js` r128
+chargé depuis cdnjs (salon 3D), `qrcode.react` (QR de la table).
+
+## Le front : le salon Casino Riviera
+
+Le front est une scène 3D plein écran (three.js) : table de blackjack avec croupier animé,
+roulette européenne avec cylindre et bille, écran de L'Envol (l'Aviator) et guéridon de pile
+ou face. Tout passe par les routes `/api` existantes, donc par les contrats :
+
+| Table | Contrat | Ce qui se passe à l'écran |
+|---|---|---|
+| Blackjack | `Blackjack` | une main par joueur ; donne, tirer, rester, doubler, séparer = une transaction chacun. Le contrat ne connaît que les rangs : la couleur affichée est dérivée de l'id de partie |
+| Roulette | `Roulette` | jetons posés sur le tapis (pleins, douzaines, chances simples), puis « Lancer » : ouverture du tour si besoin, une transaction par mise, `spin`. La bille tourne pendant les transactions et se pose sur le numéro tiré |
+| L'Envol | `Aviator` | « Miser » ouvre un vol si besoin ; décollage automatique après 7 s, envoyé par un joueur à bord. Le multiplicateur suit la hauteur de bloc (+2 %/bloc) ; le serveur révèle le point d'envol |
+| Pile ou face | `CoinFlip` | la pièce reste en l'air pendant la transaction et retombe sur la face tirée |
+
+Fichiers : `web/app/Riviera.tsx` (pose le balisage, charge les scripts), `web/app/riviera-markup.ts`
+(balisage), `web/public/riviera.js` (scène, animations et appels `/api`), `web/app/globals.css`.
+`window.Riviera.state()` dans la console donne l'état courant des quatre tables.
 
 ## Faire tourner le projet
 
@@ -143,8 +160,9 @@ npm install
 npm run dev
 ```
 
-La table s'ouvre sur `/`, la vue téléphone sur `/play` (accessible par le QR code affiché sur
-la table).
+Tout se joue sur `/`, depuis l'écran de table comme depuis un téléphone. Le QR code pour
+rejoindre est dans le panneau « Classement ». Les anciens liens `/play` et `/play/<jeu>`
+redirigent vers la bonne table (`/?g=aviator`, `roulette`, `coinflip`, `blackjack`).
 
 ## Démo
 

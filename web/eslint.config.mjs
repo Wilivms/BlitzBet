@@ -12,6 +12,8 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Script navigateur autonome (three.js), hors du graphe React.
+    "public/**",
   ]),
 ]);
 

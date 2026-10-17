@@ -5,6 +5,7 @@ import { addresses, explorerTx } from "@/lib/chain";
 import { GAS, publicClient, send } from "@/lib/relayer";
 import { isSeatId } from "@/lib/seat";
 import { settleTreasury } from "@/lib/treasury";
+import { invalidate } from "@/lib/cache";
 
 export const dynamic = "force-dynamic";
 
@@ -21,6 +22,7 @@ export async function POST(req: Request) {
         args: [],
         gas: GAS.openRound,
       });
+      invalidate("state");
       return NextResponse.json({ ok: true, hash, explorer: explorerTx(hash) });
     }
 
@@ -46,6 +48,7 @@ export async function POST(req: Request) {
         args: [seatId, stake, t, v],
         gas: GAS.placeBet,
       });
+      invalidate("state");
       return NextResponse.json({ ok: true, hash, explorer: explorerTx(hash) });
     }
 
@@ -88,6 +91,7 @@ export async function POST(req: Request) {
         }
       }
       const treasury = await settleTreasury(receipt);
+      invalidate("state");
       return NextResponse.json({ ok: true, result, settled, hash, explorer: explorerTx(hash), treasury });
     }
 

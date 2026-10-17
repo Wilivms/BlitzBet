@@ -91,6 +91,7 @@ async function autoRevealIfCrashed(snap: Awaited<ReturnType<typeof snapshot>>) {
     // Le reveal solde tous les sieges d'un coup : un seul virement net pour la table.
     await settleTreasury(receipt);
     invalidate("aviator");
+    invalidate("state");
     return await snapshot();
   } finally {
     revealing = false;
@@ -111,6 +112,9 @@ export async function GET() {
 export async function POST(req: Request) {
   try {
     const { action, seatId, wager } = await req.json();
+    // Chaque action change le tour en cours (et souvent un solde) : la prochaine lecture repart de la chaîne.
+    invalidate("aviator");
+    invalidate("state");
 
     if (action === "open") {
       const nextRound = Number(
@@ -149,6 +153,7 @@ export async function POST(req: Request) {
         args: [seatId],
         gas: GAS.avCashOut,
       });
+      invalidate("aviator");
       const snap = await snapshot();
       const mine = snap.seats.find((s) => s.seatId.toLowerCase() === String(seatId).toLowerCase());
       return NextResponse.json({
