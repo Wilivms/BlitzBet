@@ -931,7 +931,6 @@ function renderHist(){
   st.players.slice(0,30).forEach((p,i)=>{const tr=document.createElement('tr');if(mySeatIs(p.seatId))tr.className='me';
     const pnl=toCr(p.pnl);[String(i+1),(mySeatIs(p.seatId)?'Vous · ':'')+p.nickname,fmt(toCr(p.chips)),signed(pnl)].forEach((t,j)=>{const td=document.createElement('td');td.textContent=t;if(j===3)td.className=pnl>0?'pos':pnl<0?'neg':'';tr.appendChild(td);});tb.appendChild(tr);});
   if(!st.players.length){const tr=document.createElement('tr');const td=document.createElement('td');td.colSpan=4;td.textContent='Personne n\'est encore assis.';tr.appendChild(td);tb.appendChild(tr);}
-  const q=document.getElementById('qrSrc'),slot=$('#qrSlot');if(q&&slot&&!slot.firstChild){q.hidden=false;slot.appendChild(q);}
 }
 
 /* ---------- s'asseoir : pseudo → siège on-chain ---------- */
@@ -956,6 +955,52 @@ $('#joinForm').onsubmit=async e=>{
   a.href='https://testnet.monadexplorer.com/address/'+ad;a.textContent=ad.slice(0,6)+'…'+ad.slice(-4);});
 // ?g=aviator|roulette|coinflip|blackjack : ouvre directement la bonne table (anciens liens /play/<jeu>)
 const START_GAME=(()=>{const g=new URLSearchParams(location.search).get('g');return {aviator:'crash',crash:'crash',roulette:'rl',rl:'rl',coinflip:'coin',coin:'coin',blackjack:'bj',bj:'bj'}[g]||'bj';})();
+
+/* ---------- QR code pour rejoindre (le QR lui-même est rendu par React) ---------- */
+function showQr(on){const o=document.getElementById('qrBig');if(o)o.classList.toggle('open',on);}
+$('#qrBtn').onclick=()=>showQr(true);$('#qrOpen').onclick=()=>showQr(true);
+document.addEventListener('click',e=>{if(e.target.closest('#qrBig'))showQr(false);if(e.target.closest('#qrCard'))showQr(true);});
+addEventListener('keydown',e=>{if(e.key==='Escape')showQr(false);});
+
+/* ---------- wallet (optionnel) : se connecter pour vérifier son adresse et le réseau ----------
+   Les mises restent signées par la maison ; le wallet sert à voir son adresse, son solde MON
+   et à basculer sur Monad testnet. */
+const MONAD={chainId:'0x279f',chainName:'Monad Testnet',nativeCurrency:{name:'Monad',symbol:'MON',decimals:18},rpcUrls:['https://testnet-rpc.monad.xyz'],blockExplorerUrls:['https://testnet.monadexplorer.com']};
+const WAL={addr:null,chain:null};
+const eth=()=>window.ethereum;
+function renderWallet(){
+  const b=$('#walletBtn');const ok=WAL.addr&&WAL.chain===MONAD.chainId;
+  b.dataset.st=WAL.addr?(ok?'on':'wrong'):'';
+  b.querySelector('span').textContent=WAL.addr?(ok?WAL.addr.slice(0,6)+'…'+WAL.addr.slice(-4):'Mauvais réseau'):'Connecter un wallet';
+}
+async function walletInfo(){
+  try{const bal=await eth().request({method:'eth_getBalance',params:[WAL.addr,'latest']});const mon=Number(BigInt(bal))/1e18;
+    announce(WAL.addr.slice(0,6)+'…'+WAL.addr.slice(-4),`${mon.toLocaleString('fr-FR',{maximumFractionDigits:4})} MON sur Monad testnet · les mises restent signées par la maison`,4200);
+  }catch(e){announce('Wallet connecté',WAL.addr,3000);}
+}
+async function connectWallet(){
+  if(!eth()){
+    const mobile=matchMedia('(pointer:coarse)').matches;
+    announce('Aucun wallet détecté',mobile?'Ouvrez ce site dans le navigateur de MetaMask ou Rabby':'Installez MetaMask ou Rabby, puis rechargez la page',4200);return;
+  }
+  if(WAL.addr&&WAL.chain===MONAD.chainId){window.open(MONAD.blockExplorerUrls[0]+'/address/'+WAL.addr,'_blank','noopener');return walletInfo();}
+  try{
+    const acc=await eth().request({method:'eth_requestAccounts'});WAL.addr=acc&&acc[0]||null;
+    WAL.chain=await eth().request({method:'eth_chainId'});
+    if(WAL.chain!==MONAD.chainId){
+      try{await eth().request({method:'wallet_switchEthereumChain',params:[{chainId:MONAD.chainId}]});}
+      catch(e){if(e&&(e.code===4902||/Unrecognized|not been added/i.test(e.message||'')))await eth().request({method:'wallet_addEthereumChain',params:[MONAD]});else throw e;}
+      WAL.chain=await eth().request({method:'eth_chainId'});
+    }
+    renderWallet();if(WAL.addr)walletInfo();
+  }catch(e){renderWallet();announce('Connexion annulée',(e&&e.message||'').split('\n')[0].slice(0,120),3000);}
+}
+$('#walletBtn').onclick=connectWallet;
+if(eth()){
+  eth().request({method:'eth_accounts'}).then(a=>{WAL.addr=a&&a[0]||null;return eth().request({method:'eth_chainId'});}).then(c=>{WAL.chain=c;renderWallet();}).catch(()=>{});
+  if(eth().on){eth().on('accountsChanged',a=>{WAL.addr=a&&a[0]||null;renderWallet();});eth().on('chainChanged',c=>{WAL.chain=c;renderWallet();});}
+}
+$('#joinSkip').onclick=()=>{$('#join').hidden=true;announce('Mode spectateur','Montrez le QR code à la salle · choisissez un pseudo pour miser',3000);};
 /* ---- E_bjrules ---- */
 /* =========================================================
    BLACKJACK — RÈGLES

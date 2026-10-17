@@ -14,7 +14,10 @@ const Stage = memo(function Stage({ house, players }: { house: string; players: 
   return <div dangerouslySetInnerHTML={{ __html: html }} />;
 });
 
-/** QR pour rejoindre depuis un téléphone ; le script le déplace dans le panneau Classement. */
+/**
+ * QR pour rejoindre depuis un téléphone : une petite carte sur l'écran de table (grand écran),
+ * et un grand format ouvert par « Inviter · QR ». Le script ne fait que basculer la classe `open`.
+ */
 function JoinQr() {
   const url = useSyncExternalStore(
     () => () => {},
@@ -22,10 +25,26 @@ function JoinQr() {
     () => "",
   );
   if (!url) return null;
+  const host = url.replace(/^https?:\/\//, "");
   return (
-    <div id="qrSrc">
-      <QRCodeSVG value={url} size={132} bgColor="#f2e9d6" fgColor="#1b120a" />
-    </div>
+    <>
+      <div id="qrCard" title="Agrandir le QR code">
+        <div className="qr">
+          <QRCodeSVG value={url} size={96} bgColor="#f2e9d6" fgColor="#1b120a" />
+        </div>
+        <span>Scannez pour jouer</span>
+      </div>
+      <div id="qrBig" role="dialog" aria-label="QR code pour rejoindre">
+        <div className="box">
+          <h2>Rejoignez la table</h2>
+          <div className="qr">
+            <QRCodeSVG value={url} size={360} bgColor="#f2e9d6" fgColor="#1b120a" />
+          </div>
+          <p>Scannez, choisissez un pseudo, misez. Aucun wallet requis.</p>
+          <small>{host} · touchez pour fermer</small>
+        </div>
+      </div>
+    </>
   );
 }
 

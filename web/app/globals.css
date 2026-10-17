@@ -3,8 +3,6 @@
    haut, dock de jeu en verre fumé en bas, intro « maintenir pour entrer ».
    ============================================================ */
 html,body{margin:0;padding:0}
-#qrSrc{display:none}
-#qrSlot #qrSrc{display:block}
 /* Layout : scène 3D plein écran ; bandeau en haut, dock de jeu en verre fumé en bas, intro « maintenir pour entrer » */
 [hidden]{display:none!important}
 :root{
@@ -265,8 +263,26 @@ button,.chip{touch-action:manipulation}
 #txLink{color:var(--brass-hi);text-decoration:none;white-space:nowrap}
 #txLink:hover{border-color:var(--brass)}
 #cfHist{display:flex;gap:4px;flex-wrap:wrap}
-#qrSlot{display:grid;place-items:center;padding:12px;border-radius:12px;background:#f2e9d6;justify-self:center}
-#qrSlot svg{display:block;width:132px;height:132px}
+/* QR : petite carte sur l'écran de table, grand format au clic */
+#qrCard{position:fixed;right:16px;bottom:calc(env(safe-area-inset-bottom,0px) + 150px);z-index:4;display:none;gap:6px;justify-items:center;padding:10px 10px 8px;border:1px solid var(--panel-edge);border-radius:14px;background:var(--panel);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);cursor:pointer;transition:transform .4s var(--expo)}
+#qrCard:hover{transform:translateY(-3px);border-color:var(--brass)}
+#qrCard .qr{padding:6px;border-radius:8px;background:#f2e9d6;line-height:0}
+#qrCard span{font-size:10px;letter-spacing:.22em;text-transform:uppercase;color:var(--muted);font-weight:600}
+body.in #qrCard{display:grid}
+@media (max-width:900px),(max-height:620px){body.in #qrCard{display:none}}
+#qrBig{position:fixed;inset:0;z-index:13;display:none;place-items:center;background:rgba(13,10,8,.86);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);cursor:pointer}
+#qrBig.open{display:grid;animation:payIn .5s var(--expo)}
+#qrBig .box{display:grid;gap:14px;justify-items:center;text-align:center;padding:24px}
+#qrBig .qr{padding:16px;border-radius:18px;background:#f2e9d6;line-height:0}
+#qrBig .qr svg{width:min(70vw,52vh,360px);height:auto}
+#qrBig h2{margin:0;font-family:var(--display);font-weight:400;font-size:clamp(28px,5vw,44px);color:var(--brass-hi)}
+#qrBig p{margin:0;color:var(--ivory);opacity:.8}
+#qrBig small{color:var(--muted);letter-spacing:.06em}
+.wallet{display:flex;align-items:center;gap:7px}
+.wallet i{width:8px;height:8px;border-radius:50%;background:var(--muted);flex:none}
+.wallet[data-st="on"]{border-color:var(--brass);color:var(--brass-hi)}
+.wallet[data-st="on"] i{background:var(--win);box-shadow:0 0 8px var(--win)}
+.wallet[data-st="wrong"] i{background:var(--lose)}
 .wallets{display:grid;gap:4px;font-size:12px}
 .wallets a{color:var(--brass-hi);text-decoration:none;font-variant-numeric:tabular-nums}
 .wallets div{display:flex;justify-content:space-between;gap:8px;color:var(--muted)}

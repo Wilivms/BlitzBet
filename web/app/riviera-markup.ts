@@ -14,6 +14,8 @@ export const RIVIERA_MARKUP = String.raw`
   <div class="right">
     <button class="ghost" id="moreBtn" aria-expanded="false" aria-controls="more">Menu</button>
     <div class="more" id="more">
+      <button class="ghost" id="qrBtn">Inviter · QR</button>
+      <button class="ghost wallet" id="walletBtn"><i></i><span>Connecter un wallet</span></button>
       <button class="ghost" id="histBtn" aria-expanded="false">Classement</button>
       <button class="ghost" id="payBtn" aria-expanded="false">Règles</button>
       <a class="ghost" id="txLink" href="#" target="_blank" rel="noreferrer" hidden>Dernière transaction ↗</a>
@@ -32,8 +34,8 @@ export const RIVIERA_MARKUP = String.raw`
   <p id="histNote"></p>
   <table id="histTable"></table>
   <h3>Rejoindre la table</h3>
-  <p>Scannez pour jouer depuis votre téléphone. Aucun wallet : la maison signe chaque mise.</p>
-  <div id="qrSlot"></div>
+  <p>Scannez pour jouer depuis votre téléphone. Aucun wallet requis : la maison signe chaque mise.</p>
+  <button class="btn" id="qrOpen">Afficher le QR code</button>
   <h3>Wallets du casino</h3>
   <div class="wallets">
     <div><span>Maison</span><a id="wHouse" data-addr="{{HOUSE}}" target="_blank" rel="noreferrer"></a></div>
@@ -137,6 +139,7 @@ export const RIVIERA_MARKUP = String.raw`
     <input id="nick" maxlength="24" placeholder="Votre pseudo" aria-label="Pseudo">
     <button class="btn primary" id="joinBtn" type="submit">S'asseoir</button>
     <div id="joinErr" role="alert"></div>
+    <button class="btn" id="joinSkip" type="button">Regarder sans jouer</button>
   </form>
 </div>
 
