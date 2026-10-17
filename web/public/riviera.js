@@ -140,7 +140,7 @@ function forgetSeat(){try{localStorage.removeItem(SEAT_KEY);}catch(e){}ME.seat=n
 function netPill(){
   const pill=$('#netPill');if(!pill)return;
   const st=CHAIN.ok===null?'wait':CHAIN.ok?'on':'off';pill.dataset.st=st;
-  pill.querySelector('span').textContent=st==='on'?`Monad testnet · ${CHAIN.state?CHAIN.state.players.length:0} joueurs`:st==='wait'?'Connexion…':'Chaîne injoignable';
+  pill.querySelector('span').textContent=st==='on'?(n=>`Monad testnet · ${n} joueur${n>1?'s':''}`)(CHAIN.state?CHAIN.state.players.length:0):st==='wait'?'Connexion…':'Chaîne injoignable';
 }
 // Mises au tapis : le solde affiché baisse tout de suite, la chaîne confirme ensuite
 function needSeat(){if(ME.seat)return true;askNickname();return false;}
@@ -1049,8 +1049,8 @@ async function bjDeal(){
   inflight+=amt;S.phase='deal';push({k:'start'});
   try{
     const g=await api('/api/blackjack',{action:'deal',seatId:ME.seat,wager:toMon(amt)});
-    BJ.game=g;busy.bj=false;
-    await applyGame(g,{fresh:true});
+    BJ.game=g;
+    await applyGame(g,{fresh:true});            // occupé jusqu'à la fin de la donne : pas d'action pendant l'animation
   }catch(e){
     inflight=Math.max(0,inflight-amt);
     S.phase='betting';push(null);announce('Donne refusée',e.message,2800);
